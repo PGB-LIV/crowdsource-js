@@ -20,6 +20,7 @@
     "grunt-qunit-cov": "0.3.x",
     "grunt-plato": "1.4.x",
     "jscoverage": "0.6.x",
+	"google-closure-compiler": "20161201.x.x",
     "grunt-node-closure-compiler": "0.0.x"
   }
 }
