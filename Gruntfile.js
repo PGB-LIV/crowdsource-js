@@ -8,8 +8,8 @@ module.exports = function(grunt) {
       all: ['src/*.js'],
       options: {
 		  grunt.file.readJSON('build/jshint.js'),
-		  reporter: require('jshint-stylish')
-		  reporterOutput: "build/logs/jshint.log"
+		  reporter: "checkstyle",
+		  reporterOutput: "build/logs/jshint.xml"
 	  }
     },
     concat: {
