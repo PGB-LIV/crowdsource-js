@@ -84,7 +84,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-google-closure-tools-compiler');
 
   // Default task(s).
-  grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'googleclosurecompiler', 'qunit-cov']);
-  grunt.registerTask('jenkins', ['jshint', 'testem', 'clean', 'mkdir', 'googleclosurecompiler', 'qunit-cov', 'plato', 'concat', 'uglify']);
+  grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'closurecompiler', 'qunit-cov']);
+  grunt.registerTask('jenkins', ['jshint', 'testem', 'clean', 'mkdir', 'closurecompiler', 'qunit-cov', 'plato', 'concat', 'uglify']);
 
 };
