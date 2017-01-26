@@ -26,13 +26,15 @@ module.exports = function(grunt) {
         }
       }
     },
-	closure: {
-      options: {
-        js: [ 'src/crowdsource.js', 'src/cs_worker.js' ],
-        jsOutputFile: 'dist/closure_compile_adv.js',
-        compilationLevel: 'ADVANCED_OPTIMIZATIONS',
-		reportFile: 'build/logs/closure.xml'
-      }
+	"closure-compiler": {
+		all: {
+		  js: [ 'src/crowdsource.js', 'src/cs_worker.js' ],
+		  jsOutputFile: 'dist/closure_compile_adv.js',
+		  options: {
+		    compilationLevel: 'ADVANCED_OPTIMIZATIONS',
+		    reportFile: 'build/logs/closure.xml'
+		  }
+		}		
     },
     uglify: {
       options: {
@@ -82,7 +84,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-node-closure-compiler');
 
   // Default task(s).
-  grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'closure', 'qunit-cov']);
-  grunt.registerTask('jenkins', ['jshint', 'testem', 'clean', 'mkdir', 'closure', 'qunit-cov', 'plato', 'concat', 'uglify']);
+  grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'closure-compiler', 'qunit-cov']);
+  grunt.registerTask('jenkins', ['jshint', 'testem', 'clean', 'mkdir', 'closure-compiler', 'qunit-cov', 'plato', 'concat', 'uglify']);
 
 };
