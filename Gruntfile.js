@@ -82,7 +82,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-node-closure-compiler');
 
   // Default task(s).
-  grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'qunit-cov']);
-  grunt.registerTask('jenkins', ['jshint', 'testem', 'clean', 'mkdir', 'qunit-cov', 'plato', 'concat', 'uglify']);
+  grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'closure', 'qunit-cov']);
+  grunt.registerTask('jenkins', ['jshint', 'testem', 'clean', 'mkdir', 'closure', 'qunit-cov', 'plato', 'concat', 'uglify']);
 
 };
