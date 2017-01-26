@@ -11,6 +11,9 @@
 	
 	var myWorkUnit; // {type:'workunit', id:0, job:0, $ipAddress:0, ms1:0, ms2:[{mz:n, intensity:n}...], peptides:[{id:1, structure:"ASDFFS"}...]}; 
 	var workerStatus = WORKER_AWAITING_WORKUNIT;
+	var myB_ions = [];		//array of B ions filled by fragment() upon successful ms1 
+	var myY_ions = [];		//array of Y ions filled by fragment() upon successful ms1
+
 	
 	
 	onmessage = function (event){
@@ -72,8 +75,6 @@
 	function doMS2Search()
 	{
 		var resultObject = {type:"result",workunit:0,job:0,ip:0,peptides:[] };		//array of best 5 Pepdtide [{id score}]
-		
-			
 		var allPeptideScores=[];		//array of id, final score
 		
 		normaliseMs2();					//make ms2 intensities between 0 - 100
@@ -82,19 +83,19 @@
 			//lets set up the current default resultObject properties that we know.
 		resultObject.job = myWorkUnit.job;
 		resultObject.workunit = myWorkUnit.id;
-		for (p = 0; p < myWorkUnit.peptides.length; p++)
+		for (var p = 0; p < myWorkUnit.peptides.length; p++)
 			{
 				var scoreObj = {id:0, score:0};
-				bscore = 0;
-				yscore = 0;
-				bcount = 0;
-				ycount = 0;
+				var bscore = 0;
+				var yscore = 0;
+				var bcount = 0;
+				var ycount = 0;
 				
 				fragment(myWorkUnit.peptides[p].structure);			//flush out myB_ions & myY_ions array.
 				
-				for (b = 0; b < myB_ions.length; b++)
+				for (var b = 0; b < myB_ions.length; b++)
 				{
-					for (m = 0; m < myWorkUnit.ms2.length; m++)
+					for (var m = 0; m < myWorkUnit.ms2.length; m++)
 					{
 						if (Math.abs(myB_ions[b]-myWorkUnit.ms2[m]['mz']) <= 0.2)
 						{
@@ -104,7 +105,7 @@
 					}
 				}
 												//check Y ions against ms2 records;								
-				for (y = 0; y < myY_ions.length; y++)
+				for (var y = 0; y < myY_ions.length; y++)
 				{
 					for (m = 0; m < myWorkUnit.ms2.length; m++)
 					{
@@ -133,7 +134,7 @@
 			}
 			
 			
-			for (r = 0; r < numRes; r++)
+			for (var r = 0; r < numRes; r++)
 			{
 				resultObject.peptides.push(allPeptideScores[r])
 			}
@@ -169,18 +170,16 @@
 				X:0
 				};
 				
-	var myB_ions = [];		//array of B ions filled by fragment() upon successful ms1 
-	var myY_ions = [];		//array of Y ions filled by fragment() upon successful ms1
 	//creates arrays of B and Y ions in myB and myY of peptide[index] held in myProtein;
 	function fragment(struc)				 
 	{
 		var myPeptide = struc;		//myProtein.peptides[index]['structure'];
 		var cm = 0;
 		myB_ions = [];
-		for (i = 0; i < myPeptide.length; i++)
+		for (var i = 0; i < myPeptide.length; i++)
 		{
 			var aa = myPeptide.charAt(i);
-			modmass = checkforPTM(aa,'b');
+			var modmass = checkforPTM(aa);
 			var m = AAMass[aa]; 
 			if (i === 0){	//first time through? -0H + water
 				m += 1.007276;		//add a hydrogen
@@ -194,7 +193,7 @@
 		for (var i = myPeptide.length-1; i >= 0; i--)
 		{
 			var aay = myPeptide.charAt(i);
-			modmass = checkforPTM(aay,'y');
+			var modmass = checkforPTM(aay);
 			var my = AAMass[aay]; 
 			if (i === (myPeptide.length-1)){	//first time through? H + water
 				my +=  18.010565+1.007276;		
@@ -206,7 +205,7 @@
 	}
 	
 
-	function checkforPTM(aap,ion)
+	function checkforPTM(aap)
 	{
 		var masstoadd = 0;
 		for (var m = 0; m < myWorkUnit.mods.length; m++)

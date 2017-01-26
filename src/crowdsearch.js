@@ -54,16 +54,12 @@
 		switch (json.type)
 		{
 			case "workunit":
-
 				receiveWorkUnit(json);
 				break;
-				
 			case "confirmation":
 				requestWorkUnit();
 				break;
-			
 			case "message":
-				break;
 			case "nomore":
 				break;
 			default:
@@ -76,21 +72,9 @@
 	{
 		var workerResponse = JSON.parse(e.data);
 		
-		switch (workerResponse.type)
+		if (workerResponse.type === "result")
 		{
-			case "acknowledge":
-			switch (workerResponse.what)
-			{
-				case "workunit": 
-					break;
-				case "confirmation":		
-					break;
-			}
-			break;
-			
-			case "result":
-				sendResult(JSON.stringify(workerResponse));
-				break;
+			sendResult(JSON.stringify(workerResponse));				
 		}
 	}
 
