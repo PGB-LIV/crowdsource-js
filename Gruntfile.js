@@ -26,7 +26,7 @@ module.exports = function(grunt) {
         }
       }
     },
-	closure-compiler: {
+	"closure-compiler": {
       options: {
         js: [ 'src/crowdsource.js', 'src/cs_worker.js' ],
         jsOutputFile: 'dist/closure_compile_adv.js',
