@@ -1,0 +1,25 @@
+{
+  "name": "CrowdSourcingClient-JS",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+	"url": "https://github.com/PGB-LIV/crowdsource-js.git"
+  },
+  "scripts": {
+    "test": "grunt testem"
+  },
+  "devDependencies": {
+    "grunt": "1.0.x",
+    "grunt-contrib-clean": "1.0.x",
+    "grunt-mkdir": "1.0.x",
+    "grunt-contrib-concat": "1.0.x",
+    "grunt-contrib-jshint": "1.1.x",
+    "grunt-contrib-uglify": "2.0.x",
+    "grunt-testem": "0.5.x",
+    "grunt-qunit-cov": "0.3.x",
+    "grunt-plato": "1.4.x",
+    "jscoverage": "0.6.x",
+    "grunt-closure": "0.0.x"
+  }
+}
