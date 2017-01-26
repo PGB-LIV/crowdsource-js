@@ -1,4 +1,4 @@
 {
-  reporter: "checkstyle",
-  reporterOutput: "build/logs/jshint.xml"
+  "reporter": "checkstyle",
+  "reporterOutput": "build/logs/jshint.xml"
 }
