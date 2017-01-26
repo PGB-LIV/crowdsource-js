@@ -21,6 +21,6 @@
     "grunt-plato": "1.4.x",
     "jscoverage": "0.6.x",
 	"google-closure-compiler": "20161201.x.x",
-    "grunt-node-closure-compiler": "0.0.x"
+    "grunt-google-closure-tools-compiler": "0.1.x"
   }
 }
