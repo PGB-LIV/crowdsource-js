@@ -16,7 +16,7 @@
 
 	
 	
-	onmessage = function (event){
+	var onmessage = function (event){
 		var myObj = JSON.parse(event.data);
 		var retString;
 		switch (myObj.type)
@@ -173,34 +173,34 @@
 	//creates arrays of B and Y ions in myB and myY of peptide[index] held in myProtein;
 	function fragment(struc)				 
 	{
-		var myPeptide = struc;		//myProtein.peptides[index]['structure'];
+		var myPeptide = struc;		
 		var cm = 0;
 		myB_ions = [];
 		for (var i = 0; i < myPeptide.length; i++)
 		{
 			var aa = myPeptide.charAt(i);
-			var modmass = checkforPTM(aa);
+			var modmassb = checkforPTM(aa);
 			var m = AAMass[aa]; 
 			if (i === 0){	//first time through? -0H + water
 				m += 1.007276;		//add a hydrogen
 			}
-			m +=modmass;
+			m +=modmassb;
 			cm+=m;
 			myB_ions[i]= cm.toFixed(6);
 		}
 		cm = 0;
 		myY_ions=[];
-		for (var i = myPeptide.length-1; i >= 0; i--)
+		for (var iy = myPeptide.length-1; iy >= 0; iy--)
 		{
-			var aay = myPeptide.charAt(i);
-			var modmass = checkforPTM(aay);
+			var aay = myPeptide.charAt(iy);
+			var modmassy = checkforPTM(aay);
 			var my = AAMass[aay]; 
-			if (i === (myPeptide.length-1)){	//first time through? H + water
+			if (iy === (myPeptide.length-1)){	//first time through? H + water
 				my +=  18.010565+1.007276;		
 			}
-			my+=modmass;
+			my+=modmassy;
 			cm+=my;
-			myY_ions[i]= cm.toFixed(6);
+			myY_ions[iy]= cm.toFixed(6);
 		}
 	}
 	
@@ -210,7 +210,7 @@
 		var masstoadd = 0;
 		for (var m = 0; m < myWorkUnit.mods.length; m++)
 		{
-			if (myWorkUnit.mods[m]['loc']==aap)
+			if (myWorkUnit.mods[m]['loc']===aap)
 			{
 				masstoadd+=myWorkUnit.mods[m]['modmass'];
 			}
