@@ -4,6 +4,12 @@ module.exports = function(grunt) {
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
     clean: ['dist/*.js', 'test/testem.tap'],
+	mkdir: {
+		all: {
+			mode: 0700,
+			create: ['dist/cov', 'dist/metrics']
+		}
+	},
     jshint: {
       all: ['src/*.js'],
       options: grunt.file.readJSON('build/jshint.js')
@@ -56,6 +62,7 @@ module.exports = function(grunt) {
   });
 
   grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-mkdir');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -64,7 +71,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-plato');
 
   // Default task(s).
-  grunt.registerTask('default', ['jshint', 'testem', 'clean', 'qunit-cov']);
-  grunt.registerTask('jenkins', ['jshint', 'testem', 'clean', 'qunit-cov', 'plato', 'concat', 'uglify']);
+  grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'qunit-cov']);
+  grunt.registerTask('jenkins', ['jshint', 'testem', 'clean', 'mkdir', 'qunit-cov', 'plato', 'concat', 'uglify']);
 
 };
