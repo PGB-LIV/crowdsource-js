@@ -26,6 +26,14 @@ module.exports = function(grunt) {
         }
       }
     },
+	closure: {
+      options: {
+        js: [ 'src/crowdsource.js', 'src/cs_worker.js' ],
+        jsOutputFile: 'dist/closure_compile_adv.js',
+        compilationLevel: 'ADVANCED_OPTIMIZATIONS',
+		reportFile: 'build/logs/closure.xml'
+      }
+    },
     uglify: {
       options: {
         banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
@@ -71,6 +79,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-testem');
   grunt.loadNpmTasks('grunt-qunit-cov');
   grunt.loadNpmTasks('grunt-plato');
+  grunt.loadNpmTasks('grunt-simple-closure-compiler');
 
   // Default task(s).
   grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'qunit-cov']);

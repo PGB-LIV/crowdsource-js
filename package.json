@@ -19,6 +19,7 @@
     "grunt-testem": "0.5.x",
     "grunt-qunit-cov": "0.3.x",
     "grunt-plato": "1.4.x",
-    "jscoverage": "0.6.x"
+    "jscoverage": "0.6.x",
+    "grunt-closure": "0.0.x"
   }
 }
