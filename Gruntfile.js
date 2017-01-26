@@ -6,7 +6,7 @@ module.exports = function(grunt) {
     clean: ['dist/*.js', 'test/testem.tap'],
 	mkdir: {
 		all: {
-			options {
+			options: {
 				mode: 0700,
 				create: ['dist/cov', 'dist/metrics']
 			}
