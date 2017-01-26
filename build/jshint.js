@@ -1,4 +1,5 @@
 {
   "reporter": "checkstyle",
-  "reporterOutput": "build/logs/jshint.xml"
+  "reporterOutput": "build/logs/jshint.xml",
+  "force": true
 }
