@@ -26,7 +26,7 @@ module.exports = function(grunt) {
         }
       }
     },
-	googleclosurecompiler: {
+	closurecompiler: {
 		all: {
 		  options: {
 		    "closure_compilation_level": 'ADVANCED'
