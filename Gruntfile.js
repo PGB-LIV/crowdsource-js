@@ -79,7 +79,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-testem');
   grunt.loadNpmTasks('grunt-qunit-cov');
   grunt.loadNpmTasks('grunt-plato');
-  grunt.loadNpmTasks('grunt-simple-closure-compiler');
+  grunt.loadNpmTasks('grunt-node-closure-compiler');
 
   // Default task(s).
   grunt.registerTask('default', ['jshint', 'testem', 'clean', 'mkdir', 'qunit-cov']);
