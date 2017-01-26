@@ -30,12 +30,11 @@ module.exports = function(grunt) {
 		all: {
 		  js: [ 'src/crowdsource.js', 'src/cs_worker.js' ],
 		  jsOutputFile: 'dist/closure_compile_adv.js',
-		    options: {
-			  compilationLevel: 'ADVANCED_OPTIMIZATIONS',
-			  reportFile: 'build/logs/closure.xml'
-		    }
+		  options: {
+		    compilationLevel: 'ADVANCED_OPTIMIZATIONS',
+		    reportFile: 'build/logs/closure.xml'
 		  }
-		}
+		}		
     },
     uglify: {
       options: {
