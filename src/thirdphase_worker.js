@@ -84,7 +84,7 @@ function doModSearch(myWorkUnit) {
 		// For the moment I have to bulk out the position field to be equal to
 		// number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
-		for (var i = 0; i < resObj.mods.length; i++) {
+		for (i = 0; i < resObj.mods.length; i++) {
 			if (resObj.mods[i].position.length < currPeptide.mods[i].num) {
 				var n = currPeptide.mods[i].num
 						- resObj.mods[i].position.length;
@@ -345,7 +345,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 		// For the moment I have to bulk out the position field to be equal to
 		// number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
-		for (var m = 0; m < resObj.mods.length; m++) {
+		for (m = 0; m < resObj.mods.length; m++) {
 			if (resObj.mods[m].position.length < currPeptide.mods[m].num) {
 				var n = currPeptide.mods[m].num
 						- resObj.mods[m].position.length;
@@ -528,14 +528,15 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 	cumulativeMass += checkforFixedPTM('['); // is a fixed mod an amine
 	// terminus?
 	var ionObj;
+	var loopIndex;
 	for (var b = 0; b < (sequence.length); b++) {
 		ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
 		acid = sequence.charAt(b);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
 
-		for (var ml = 0; ml < mlocs.length; ml++) {
-			if (b === (mlocs[ml].possLoc - 1)) {
-				cumulativeMass += mlocs[ml].vModMass;
+		for (var loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
+			if (b === (mlocs[loopIndex].possLoc - 1)) {
+				cumulativeMass += mlocs[loopIndex].vModMass;
 				ionObj.modFlag = true;
 			}
 		}
@@ -553,9 +554,9 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 		acid = sequence.charAt(y);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
 		
-		for (ml = 0; ml < mlocs.length; ml++) {
-			if (y === (mlocs[ml].possLoc - 1)) {
-				cumulativeMass += mlocs[ml].vModMass;
+		for (loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
+			if (y === (mlocs[loopIndex].possLoc - 1)) {
+				cumulativeMass += mlocs[loopIndex].vModMass;
 				ionObj.modFlag = true;
 			}
 		}

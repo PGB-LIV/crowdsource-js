@@ -1,5 +1,10 @@
 {
 	"reporter": "checkstyle",
 	"reporterOutput": "build/logs/jshint.xml",
-	"force": true
+	"force": true,
+	"globals": {
+		"$": false,
+		"window": false,
+		"Worker": false
+	}
 }
