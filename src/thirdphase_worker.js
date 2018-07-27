@@ -345,12 +345,12 @@ function doThirdPhaseSearch(myWorkUnit) {
 		// For the moment I have to bulk out the position field to be equal to
 		// number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
-		for (m = 0; m < resObj.mods.length; m++) {
-			if (resObj.mods[m].position.length < currPeptide.mods[m].num) {
-				var n = currPeptide.mods[m].num
-						- resObj.mods[m].position.length;
+		for (var index = 0; index < resObj.mods.length; index++) {
+			if (resObj.mods[index].position.length < currPeptide.mods[index].num) {
+				var n = currPeptide.mods[index].num
+						- resObj.mods[index].position.length;
 				for (var t = 0; t < n; t++) {
-					resObj.mods[m].position.push(200 + t);
+					resObj.mods[index].position.push(200 + t);
 				}
 			}
 		}
@@ -534,7 +534,7 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 		acid = sequence.charAt(b);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
 
-		for (var loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
+		for (loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
 			if (b === (mlocs[loopIndex].possLoc - 1)) {
 				cumulativeMass += mlocs[loopIndex].vModMass;
 				ionObj.modFlag = true;

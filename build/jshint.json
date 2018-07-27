@@ -5,6 +5,8 @@
 	"globals": {
 		"$": false,
 		"window": false,
-		"Worker": false
+		"Worker": false,
+		"console": false,
+		"Blob": false
 	}
 }
