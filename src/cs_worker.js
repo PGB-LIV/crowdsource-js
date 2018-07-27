@@ -236,7 +236,7 @@ function matchSpectraWithIonSet(spectra,ionSet,checkloss)
 // we are) common
 function massFoundInSpectra(spectra,mass,checkloss)
 {
-	var checkloss = false;		// AMMONIA and WATER loss seem to be red
+	checkloss = false;		// AMMONIA and WATER loss seem to be red
 								// herrings and worsen results.
 	var WATER = 18.010565;
 	var AMMONIA = 17.026549;
