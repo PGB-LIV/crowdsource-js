@@ -247,7 +247,7 @@ function phosphoModExpected(peptide) {
 if (typeof Math.log10 == "undefined") {
 	Object.prototype.log10 = function(n) {
 		return Math.log(n) / Math.log(10);
-	}
+	};
 }
 
 function doThirdPhaseSearch(myWorkUnit) {
@@ -260,7 +260,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 			residues : "STY",
 			num : 1
 		} ]
-	}
+	};
 
 	var allPeptideScores = []; // made up of {peptide id, ionsmatched, score
 	// mods:[{ id,position[] }]}
@@ -316,7 +316,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 
 				if (scoreObj.score >= currScoreObj.score) {
 					// CHANGE FROM > TO >= and matched mascot better!!!!!
-					currScoreObj.score = scoreObj.score
+					currScoreObj.score = scoreObj.score;
 					currScoreObj.modPos = subIonsets[s].modPos.slice();
 					// place modPos structure [ModLoc] is kept with score
 					currScoreObj.ionsMatched = scoreObj.ionsMatched;
@@ -371,7 +371,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 			: PHASE2_MAX_NUMBER_SCORES;
 	for (var r = 0; r < outputCount; r++) {
 		// if (allPeptideScores[r].score > 0){
-		resultObject.peptides.push(allPeptideScores[r])
+		resultObject.peptides.push(allPeptideScores[r]);
 		// }
 	}
 	// var instring = JSON.stringify(myWorkUnit);

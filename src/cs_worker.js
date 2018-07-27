@@ -307,7 +307,7 @@ function checkforFixedPTM(res)
 this.onmessage = function (event) {
 	var myObj = JSON.parse(event.data);
 
-	if (typeof(myObj.job) == undefined)
+	if (typeof(myObj.job) === undefined)
 	{
 		return;	
 	}
@@ -322,4 +322,4 @@ this.onmessage = function (event) {
 	
 	// includes variable modifications
 	doThirdPhaseSearch(g_myWorkUnit);	
-}
+};

@@ -36,7 +36,7 @@ var myWorkUnit;
 var BuildWorker = function(foo) {
 	var str = foo.toString().match(
 			/^\s*function\s*\(\s*\)\s*\{(([\s\S](?!\}$))*[\s\S])/)[1];
-	
+
 	return new Worker(window.URL.createObjectURL(new Blob([ str ], {
 		type : 'text/javascript'
 	})));
@@ -72,15 +72,13 @@ function initialiseWorker() {
 	}
 }
 
-
 function receiveWorkUnit(json) {
 	console.log("received a workunit");
 	myWorkUnit = JSON.stringify(json);
 	console.log("received a workunit: " + myWorkUnit);
 	// on receiving workUnit it will get to work
-	myWorker.postMessage(myWorkUnit); 
+	myWorker.postMessage(myWorkUnit);
 }
-
 
 // worker communicates with the main js via JSON strings
 myWorker.onmessage = function(e) {
@@ -115,7 +113,8 @@ function sendTerminating() {
 }
 
 /**
- * this function is the P of the JSONP response from server eg "parseResult(Object)" P the response server
+ * this function is the P of the JSONP response from server eg
+ * "parseResult(Object)" P the response server
  */
 function parseResult(json) {
 	if (typeof (json.job) !== "undefined") {
