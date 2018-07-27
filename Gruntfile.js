@@ -64,7 +64,7 @@ module.exports = function(grunt) {
     plato: {
       options: {
         title: 'CrowdSourcingClient-JS',
-        jshint: grunt.file.readJSON('build/jshint.js')
+        jshint: grunt.file.readJSON('build/jshint.json')
       },
       metrics: {
         files: {
