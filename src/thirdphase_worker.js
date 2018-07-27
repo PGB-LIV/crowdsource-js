@@ -97,7 +97,7 @@ function doModSearch(myWorkUnit) {
 		allPeptideScores.push(resObj);
 	}
 	allPeptideScores.sort(function(a, b) {
-		return b.score - a.score
+		return b.score - a.score;
 	});
 
 	var resultObject = {
@@ -111,7 +111,7 @@ function doModSearch(myWorkUnit) {
 			: PHASE2_MAX_NUMBER_SCORES;
 	for (var r = 0; r < outputCount; r++) {
 		if (allPeptideScores[r].score > 0) {
-			resultObject.peptides.push(allPeptideScores[r])
+			resultObject.peptides.push(allPeptideScores[r]);
 		}
 	}
 
@@ -152,7 +152,7 @@ function scorePeptide(currPeptide) {
 	if (modLocs.length < totalModNum) {
 		// we are looking for more mods than possible with this residue because
 		// we cheat and place STY when ANDREW's data has full complement.
-		console.log("BEWARE DATA ERROR")
+		console.log("BEWARE DATA ERROR");
 		totalModNum = modLocs.length; // even worse now as we look for 21
 		// twice
 	}
@@ -185,7 +185,7 @@ function scorePeptide(currPeptide) {
 
 		if (scoreObj.score >= currScoreObj.score) {
 			// CHANGE FROM > TO >= and matched mascot better!!!!!
-			currScoreObj.score = scoreObj.score
+			currScoreObj.score = scoreObj.score;
 			currScoreObj.modPos = subIonsets[s].modPos.slice();
 			// place modPos structure [ModLoc] is kept with score
 			currScoreObj.ionsMatched = scoreObj.ionsMatched;
@@ -357,7 +357,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 	}
 
 	allPeptideScores.sort(function(a, b) {
-		return b.score - a.score
+		return b.score - a.score;
 	});
 
 	var resultObject = {
@@ -414,13 +414,13 @@ function getInitialResObj(myPeptide) {
 		resObj.mods.push(modp);
 		// flush out resObj.mods[]
 	}
-	
+
 	return resObj;
 }
 
 function getAllModLocs(myPeptide) {
 	var mlocs = [];
-	if (myPeptide.mods == undefined)
+	if (myPeptide.mods === undefined)
 		return mlocs;
 	for (var mod = 0; mod < myPeptide.mods.length; mod++) {
 		// we may have more than one possible modification per peptide FUDGE
@@ -439,7 +439,7 @@ function getAllModLocs(myPeptide) {
 		}
 	}
 	mlocs.sort(function(a, b) {
-		return a.possLoc - b.possLoc
+		return a.possLoc - b.possLoc;
 	}); // why do we sort it? to shuffle the mods?
 
 	return mlocs;
@@ -448,13 +448,13 @@ function getAllModLocs(myPeptide) {
 function getIonsetForAllMods(myPeptide, modlocs, num) {
 	// array ionsets to return
 	var ionSetArray = [];
-	
+
 	// combination array when dealing with more than one number of modifications
 	// of one type
 	var combArray = [];
-	
+
 	// /var modMass = myMod.mass //shorthand;
-	
+
 	var MUCH_TOO_MUCH = 10000; // Arbitrary value at which point it becomes to
 	// large causing memory issues and to long to
 	// process (Server will assume dropped
@@ -467,7 +467,7 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 		ionSetArray.push(ions); // single ionset returned
 		return ionSetArray;
 	}
-	
+
 	// search for occurrence of a single modification at any of the possible
 	// possible locations
 	// the others may have fallen off. Finding a good ion match can reduce size
@@ -511,7 +511,7 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 
 		ionSetArray.push(ions);
 	}
-	
+
 	return ionSetArray;
 }
 
@@ -534,14 +534,14 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 		var ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
 		acid = sequence.charAt(b);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
-		
+
 		for (var ml = 0; ml < mlocs.length; ml++) {
 			if (b === (mlocs[ml].possLoc - 1)) {
 				cumulativeMass += mlocs[ml].vModMass;
 				ionObj.modFlag = true;
 			}
 		}
-		
+
 		ionObj.mass = cumulativeMass;
 		ionSet.bIons.push(ionObj);
 	}
@@ -563,7 +563,7 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 		ionObj.mass = cumulativeMass;
 		ionSet.yIons.push(ionObj);
 	}
-	
+
 	return ionSet;
 }
 
@@ -593,7 +593,7 @@ function createIndexofPossibleLocations3(sequence, residues) {
 			}
 		}
 	}
-	
+
 	return posloc;
 }
 
@@ -615,7 +615,7 @@ function uniqueArrayConcat(first, second, maxlen) {
 				valmatch = true; // already in conpos so no need to add this
 			}
 		}
-		
+
 		if (!valmatch) {
 			if (first.length < maxlen) {
 				first.push(val); // new one found in this ions set so add to
@@ -635,7 +635,7 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 	for (var i = 0; i <= n; i++) {
 		values[i] = i;
 	}
-	
+
 	// initialize permutations
 	var perm = [];
 	for (var i = 0; i < n; i++) {
@@ -645,7 +645,7 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 			perm[i] = 0;
 		}
 	}
-	
+
 	perm.sort();
 
 	whileloop: while (true) {
@@ -656,18 +656,18 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 				subresult.push(values[i]);
 			}
 		}
-		
+
 		result.push(subresult);
 		// get next permutation
 		for (var i = n - 1; i > 0; i--) {
 			if (perm[i - 1] === 1) {
 				continue;
 			}
-			
+
 			if (perm[i] === 1) {
 				perm[i - 1] = 1;
 				perm[i] = 0;
-				perm = perm.slice(0, i).concat(perm.slice(i).sort())
+				perm = perm.slice(0, i).concat(perm.slice(i).sort());
 				continue whileloop;
 			}
 		}
@@ -684,7 +684,7 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 			// location.
 		}
 	}
-	
+
 	return retObj;
 }
 
@@ -692,14 +692,14 @@ function getCombinations(n, k) {
 	var nfac = getFactorial(n);
 	var kfac = getFactorial(k);
 	var nsubkfac = getFactorial(n - k);
-	
+
 	return nfac / (kfac * nsubkfac);
 }
 
 function getFactorial(f) {
-	var r = 1
+	var r = 1;
 	for (; f > 0; r *= f, f--) {
 	}
-	
+
 	return r;
 }

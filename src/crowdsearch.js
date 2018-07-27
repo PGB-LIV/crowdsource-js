@@ -68,8 +68,7 @@ function initialiseWorker() {
 		});
 	} else {
 		myWorker = new Worker(
-				"http://pgb.liv.ac.uk/~johnheap/crowdsource-server/src/public_html/javascript/"
-						+ 'no_blob_worker.js');
+				"http://pgb.liv.ac.uk/~johnheap/crowdsource-server/src/public_html/javascript/no_blob_worker.js");
 	}
 }
 
@@ -89,7 +88,7 @@ myWorker.onmessage = function(e) {
 	if (typeof (workerResponse.job) !== "undefined") {
 		sendResult(JSON.stringify(workerResponse));
 	}
-}
+};
 
 // terminate session event. Also occurs on Refresh.
 $(window).on("beforeunload", function() {

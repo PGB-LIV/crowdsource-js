@@ -137,7 +137,7 @@ function scoreIonset(ionSet)
 	 * based on length. //try
 	 */
 	
-	scoreObj.score = scoreObj.score * (1+(ionSet.bIons.length/120))
+	scoreObj.score = scoreObj.score * (1+(ionSet.bIons.length/120));
 			
 	scoreObj.score = scoreObj.score.toFixed(2);
 	scoreObj.score *=1;
@@ -210,7 +210,7 @@ function matchSpectraWithIonSet(spectra,ionSet,checkloss)
 		resultObject =  massFoundInSpectra(spectra,ionSet.bIons[b].mass,checkloss);
 		ionSet.bIons[b].deltaM = resultObject.deltaM;
 		ionSet.bIons[b].intensity = resultObject.intensity;
-		if (ionSet.bIons[b].intensity != 0) {
+		if (ionSet.bIons[b].intensity !== 0) {
 			ionSet.bIons[b].match = true;			// could remove this and
 													// use non zero
 													// intensity as match
@@ -222,7 +222,7 @@ function matchSpectraWithIonSet(spectra,ionSet,checkloss)
 		resultObject = massFoundInSpectra(spectra,ionSet.yIons[y].mass,checkloss);
 		ionSet.yIons[y].intensity = resultObject.intensity;
 		ionSet.yIons[y].deltaM = resultObject.deltaM;
-		if (ionSet.yIons[y].intensity != 0) {
+		if (ionSet.yIons[y].intensity !== 0) {
 			ionSet.yIons[y].match = true;
 		}
 	}
@@ -286,13 +286,13 @@ function checkforFixedPTM(res)
 	var masstoadd = 0;
 	for (var m = 0; m < g_myWorkUnit.fixedMods.length; m++)
 	{
-		if (g_myWorkUnit.fixedMods[m]['residues'].length > 1){	// just to
+		if (g_myWorkUnit.fixedMods[m].residues.length > 1){	// just to
 																// check...
-			console.log("Fixed Mod needs looking at "+g_myWorkUnit.fixedMods[m]['residues']);
+			console.log("Fixed Mod needs looking at "+g_myWorkUnit.fixedMods[m].residues);
 		}
-		if (g_myWorkUnit.fixedMods[m]['residues']===res)
+		if (g_myWorkUnit.fixedMods[m].residues===res)
 		{
-			masstoadd+=g_myWorkUnit.fixedMods[m]['mass'];
+			masstoadd+=g_myWorkUnit.fixedMods[m].mass;
 			// console.log("Adding "+masstoadd+" to
 			// "+g_myWorkUnit.mods[m]['loc']);
 		}
@@ -314,7 +314,7 @@ this.onmessage = function (event) {
 	
 	g_myWorkUnit=myObj;
 
-	console.log("Work Unit = "+event.data)
+	console.log("Work Unit = "+event.data);
 	
 	// change the defaults if phase2/3 ion matches are more important.
 	ION_MATCH_SCALE = 30;
