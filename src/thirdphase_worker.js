@@ -43,7 +43,8 @@ function doModSearch(myWorkUnit) {
 		var resObj = getInitialResObj(currPeptide); // fills out a peptide
 		// results object with correct peptide and mod ids
 		// {id,ionsMatched,score,mods[{id,position[]}]}
-
+		
+		var currScoreObj;
 		if (phosphoModExpected(currPeptide)) {
 
 			// we need to do a search for 2 types of phospho loss as well as
@@ -61,11 +62,11 @@ function doModSearch(myWorkUnit) {
 				if (score1.score > score0.score) {
 					currScoreObj = score1;
 				} else {
-					var currScoreObj = score0;
+					currScoreObj = score0;
 				}
 			}
 		} else {
-			var currScoreObj = scorePeptide(currPeptide); // currScoreObj is
+			currScoreObj = scorePeptide(currPeptide); // currScoreObj is
 			// best score for this peptide/mod combo... in form
 			// {modPos:[],ionsMatched:0,score:0}
 		}
@@ -83,12 +84,12 @@ function doModSearch(myWorkUnit) {
 		// For the moment I have to bulk out the position field to be equal to
 		// number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
-		for (var m = 0; m < resObj.mods.length; m++) {
-			if (resObj.mods[m].position.length < currPeptide.mods[m].num) {
-				var n = currPeptide.mods[m].num
-						- resObj.mods[m].position.length;
+		for (var i = 0; i < resObj.mods.length; i++) {
+			if (resObj.mods[i].position.length < currPeptide.mods[i].num) {
+				var n = currPeptide.mods[i].num
+						- resObj.mods[i].position.length;
 				for (var t = 0; t < n; t++) {
-					resObj.mods[m].position.push(200 + t);
+					resObj.mods[i].position.push(200 + t);
 				}
 			}
 		}
@@ -463,8 +464,8 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	// search for none modified peptide - may well be here (Peaks PTM) and gives
 	// a basal score for peptide.
 	if (num === 0) {
-		var ions = getIonsFromArray3(myPeptide, [], 0); // mypeptide,locs[],mass
-		ionSetArray.push(ions); // single ionset returned
+		ionSetArray.push(getIonsFromArray3(myPeptide, [], 0)); // single ionset returned
+		
 		return ionSetArray;
 	}
 
@@ -474,13 +475,9 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	// of future search
 	if (num === 1) {
 		for (var ml = 0; ml < modlocs.length; ml++) {
-			var ions = getIonsFromArray3(myPeptide, [ modlocs[ml] ]); // an
-			// array
-			// of
-			// one
-			// modloc
-			ionSetArray.push(ions);
+			ionSetArray.push(getIonsFromArray3(myPeptide, [ modlocs[ml] ]));
 		}
+		
 		return ionSetArray;
 	}
 
@@ -530,8 +527,9 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 	// Water - OH which is H
 	cumulativeMass += checkforFixedPTM('['); // is a fixed mod an amine
 	// terminus?
+	var ionObj;
 	for (var b = 0; b < (sequence.length); b++) {
-		var ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
+		ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
 		acid = sequence.charAt(b);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
 
@@ -551,10 +549,11 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 	// end?
 
 	for (var y = sequence.length - 1; y >= 0; y--) {
-		var ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
+		ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
 		acid = sequence.charAt(y);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
-		for (var ml = 0; ml < mlocs.length; ml++) {
+		
+		for (ml = 0; ml < mlocs.length; ml++) {
 			if (y === (mlocs[ml].possLoc - 1)) {
 				cumulativeMass += mlocs[ml].vModMass;
 				ionObj.modFlag = true;
@@ -638,7 +637,7 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 
 	// initialize permutations
 	var perm = [];
-	for (var i = 0; i < n; i++) {
+	for (i = 0; i < n; i++) {
 		if (i < k) {
 			perm[i] = 1;
 		} else {
@@ -651,7 +650,7 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 	whileloop: while (true) {
 		// save subresult
 		var subresult = [];
-		for (var i = 0; i < n; i++) {
+		for (i = 0; i < n; i++) {
 			if (perm[i] === 1) {
 				subresult.push(values[i]);
 			}
@@ -659,7 +658,7 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 
 		result.push(subresult);
 		// get next permutation
-		for (var i = n - 1; i > 0; i--) {
+		for (i = n - 1; i > 0; i--) {
 			if (perm[i - 1] === 1) {
 				continue;
 			}
