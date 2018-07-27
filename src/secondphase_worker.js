@@ -31,7 +31,7 @@ var PHOSPHO_LOSS = 79.966;  			//Phosphorylation is a special case hence special
 		for (var p = 0; p < myWorkUnit.peptides.length; p++){
 		//for (var p = 0; p < 2; p++){
 			var scoreObj = {};
-			var currPeptide = myWorkUnit.peptides[p];
+		var currPeptide = myWorkUnit.peptides[p];
 			var resObj = {id:currPeptide.id,ionsMatched:0,score:0, mods:[{}]};
 			
 			for (var mod = 0; mod < currPeptide.mods.length; mod++){	//we may have more than one possible modification per peptide as some point!!!

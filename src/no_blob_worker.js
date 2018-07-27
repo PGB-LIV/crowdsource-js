@@ -7,4 +7,3 @@ var WORKER3_NAME = "secondphase_worker.js";
 importScripts(WORKER_LOCATION+WORKER1_NAME);
 importScripts(WORKER_LOCATION+WORKER2_NAME);
 importScripts(WORKER_LOCATION+"thirdphase_worker.js");
-

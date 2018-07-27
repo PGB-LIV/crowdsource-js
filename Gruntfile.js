@@ -14,14 +14,15 @@ module.exports = function(grunt) {
 	},
     jshint: {
       all: ['src/*.js'],
-      options: grunt.file.readJSON('build/jshint.js')
+      options: grunt.file.readJSON('build/jshint.json')
     },
     concat: {
       build: {
         files: {
           'dist/<%= pkg.name %>.js': [
             'src/crowdsource.js',
-            'src/cs_worker.js'
+            'src/cs_worker.js',
+            'src/thirdphase_worker.js'
           ]
         }
       }

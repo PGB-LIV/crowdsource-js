@@ -15,10 +15,10 @@
  * the License.
  */
 var PHOSPHORYLATION = 21; // global equate. (may change dependent on
-							// Uniprot!!!!)
+// Uniprot!!!!)
 var PHOSPHO_MASS = 79.966331;
 var PHOSPHO_LOSS = 97.966; // Phosphorylation is a special case hence special
-							// globals ....
+// globals ....
 var PHOSPHO2_LOSS = 115.987;
 // in actual fact probably all modifications require special case scoring due to
 // different proton affinities etc.
@@ -37,14 +37,12 @@ function doModSearch(myWorkUnit) {
 
 	// console.log(JSON.stringify(myWorkUnit.peptides));
 	var allPeptideScores = []; // made up of {peptide id, ionsmatched, score
-								// mods:[{ id,position[] }]}
+	// mods:[{ id,position[] }]}
 	for (var pep = 0; pep < myWorkUnit.peptides.length; pep++) {
 		var currPeptide = myWorkUnit.peptides[pep];
 		var resObj = getInitialResObj(currPeptide); // fills out a peptide
-													// results object with
-													// correct peptide and mod
-													// ids
-													// {id,ionsMatched,score,mods[{id,position[]}]}
+		// results object with correct peptide and mod ids
+		// {id,ionsMatched,score,mods[{id,position[]}]}
 
 		if (phosphoModExpected(currPeptide)) {
 
@@ -68,25 +66,23 @@ function doModSearch(myWorkUnit) {
 			}
 		} else {
 			var currScoreObj = scorePeptide(currPeptide); // currScoreObj is
-															// best score for
-															// this peptide/mod
-															// combo... in form
-															// {modPos:[],ionsMatched:0,score:0}
+			// best score for this peptide/mod combo... in form
+			// {modPos:[],ionsMatched:0,score:0}
 		}
 
 		resObj.score = currScoreObj.score;
 		resObj.ionsMatched = currScoreObj.ionsMatched;
 		for (var i = 0; i < currScoreObj.modPos.length; i++) { // //currScoreObj.modPos
-																// is an array
-																// of ModLocs
+			// is an array
+			// of ModLocs
 			var m = currScoreObj.modPos[i].modIndex;
 			var p = currScoreObj.modPos[i].possLoc;
 			resObj.mods[m].position.push(p); // to resObj.mod[].position;
 		}
+
 		// For the moment I have to bulk out the position field to be equal to
 		// number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
-
 		for (var m = 0; m < resObj.mods.length; m++) {
 			if (resObj.mods[m].position.length < currPeptide.mods[m].num) {
 				var n = currPeptide.mods[m].num
@@ -96,6 +92,7 @@ function doModSearch(myWorkUnit) {
 				}
 			}
 		}
+
 		// console.log(JSON.stringify(resObj));
 		allPeptideScores.push(resObj);
 	}
@@ -117,6 +114,7 @@ function doModSearch(myWorkUnit) {
 			resultObject.peptides.push(allPeptideScores[r])
 		}
 	}
+
 	// var instring = JSON.stringify(myWorkUnit);
 	// console.log("Work Unir: "+instring);
 	var retString = JSON.stringify(resultObject);
@@ -139,44 +137,37 @@ function scorePeptide(currPeptide) {
 		modPos : [],
 		ionsMatched : 0,
 		score : 0
-	}; // holds the best so far score for this peptide modification )positions
-		// held in modpos[{pos,index,mass}]
+	};
+
+	// holds the best so far score for this peptide modification )positions
+	// held in modpos[{pos,index,mass}]
 	var totalModNum = getTotalModNum(currPeptide);
 	var modLocs = getAllModLocs(currPeptide); // Array of ModLoc objects (all
-												// possible locations of all
-												// modifications reported)
-												// ModLoc objects are
-												// {possLoc,modIndex,vModMass}]
+	// possible locations of all
+	// modifications reported)
+	// ModLoc objects are
+	// {possLoc,modIndex,vModMass}]
 
 	// just check..
-	if (modLocs.length < totalModNum) { // we are looking for more mods than
-										// possible with this residue because we
-										// cheat and place STY when ANDREW's
-										// data has full complement.
+	if (modLocs.length < totalModNum) {
+		// we are looking for more mods than possible with this residue because
+		// we cheat and place STY when ANDREW's data has full complement.
 		console.log("BEWARE DATA ERROR")
 		totalModNum = modLocs.length; // even worse now as we look for 21
-										// twice
+		// twice
 	}
 
 	// 24/5/17 Boss wants me to try with the expected number of mods
-	var subIonsets = getIonsetForAllMods(currPeptide, modLocs, totalModNum); // an
-																				// array
-																				// of
-																				// ionsets
-																				// to
-																				// score
-																				// containing
-																				// num
-																				// number
-																				// of
-																				// mods
+	var subIonsets = getIonsetForAllMods(currPeptide, modLocs, totalModNum);
+
+	// an array of ionsets to score containing num number of mods
 	// console.log("ionsets="+JSON.stringify(subIonsets));
 	for (var s = 0; s < subIonsets.length; s++) {
 		subIonsets[s] = matchSpectraWithIonSet(g_myWorkUnit.fragments,
 				subIonsets[s]); // for each ionset we log matches with ms2
-								// fragments
+		// fragments
 		scoreObj = scoreIonset(subIonsets[s]); // score the ionset (matched
-												// ions and ion ladders)
+		// ions and ion ladders)
 		/*
 		 * if (currPeptide.id === 1021615){
 		 * console.log(JSON.stringify(subIonsets[s])); console.log("Id:
@@ -192,15 +183,11 @@ function scorePeptide(currPeptide) {
 		 * console.log(modString+matchString+"-------------"); }
 		 */
 
-		if (scoreObj.score >= currScoreObj.score) { // CHANGE FROM > TO >= and
-													// matched mascot
-													// better!!!!!
+		if (scoreObj.score >= currScoreObj.score) {
+			// CHANGE FROM > TO >= and matched mascot better!!!!!
 			currScoreObj.score = scoreObj.score
-			currScoreObj.modPos = subIonsets[s].modPos.slice(); // place modPos
-																// structure
-																// [ModLoc] is
-																// kept with
-																// score
+			currScoreObj.modPos = subIonsets[s].modPos.slice();
+			// place modPos structure [ModLoc] is kept with score
 			currScoreObj.ionsMatched = scoreObj.ionsMatched;
 		}
 	}
@@ -212,6 +199,7 @@ function scorePeptide(currPeptide) {
 				+ currScoreObj.score);
 		console.log("------------");
 	}
+
 	return currScoreObj;
 }
 
@@ -226,6 +214,7 @@ function getNeutralLossPeptide(peptide, loss) {
 			num : 1
 		} ]
 	};
+
 	for (var i = 0; i < peptide.mods.length; i++) {
 		dumPeptide.mods[i].id = peptide.mods[i].id;
 		dumPeptide.mods[i].mass = peptide.mods[i].mass;
@@ -236,6 +225,7 @@ function getNeutralLossPeptide(peptide, loss) {
 			dumPeptide.mods[i].mass = PHOSPHO_MASS - loss;
 		}
 	}
+
 	return dumPeptide;
 }
 /**
@@ -250,6 +240,7 @@ function phosphoModExpected(peptide) {
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -258,6 +249,7 @@ if (typeof Math.log10 == "undefined") {
 		return Math.log(n) / Math.log(10);
 	}
 }
+
 function doThirdPhaseSearch(myWorkUnit) {
 	var dumPhospho1 = {
 		id : 0,
@@ -269,8 +261,9 @@ function doThirdPhaseSearch(myWorkUnit) {
 			num : 1
 		} ]
 	}
+
 	var allPeptideScores = []; // made up of {peptide id, ionsmatched, score
-								// mods:[{ id,position[] }]}
+	// mods:[{ id,position[] }]}
 	for (var pep = 0; pep < myWorkUnit.peptides.length; pep++) {
 		var scoreObj = {};
 		var currScoreObj = {
@@ -278,96 +271,65 @@ function doThirdPhaseSearch(myWorkUnit) {
 			ionsMatched : 0,
 			score : 0
 		}; // holds the best so far score for this peptide modification
-			// )positions held in modpos[{pos,index,mass}]
+		// )positions held in modpos[{pos,index,mass}]
 
 		var currPeptide = myWorkUnit.peptides[pep];
 
 		var totalModNum = getTotalModNum(currPeptide);
 		var modLocs = getAllModLocs(currPeptide); // Array of ModLoc objects
-													// (all possible locations
-													// of all modifications
-													// reported) ModLoc objects
-													// are
-													// {possLoc,modIndex,vModMass}]
+		// (all possible locations
+		// of all modifications
+		// reported) ModLoc objects
+		// are
+		// {possLoc,modIndex,vModMass}]
 		var resObj = getInitialResObj(currPeptide); // flushes out resObj arrays
-													// to correct size
+		// to correct size
 
 		// just check..
 		if (modLocs.length < totalModNum) { // we are looking for more mods than
-											// possible with this residue
-											// because we cheat and place STY
-											// when ANDREW's data has full
-											// complement.
+			// possible with this residue
+			// because we cheat and place STY
+			// when ANDREW's data has full
+			// complement.
 			// console.log("BEWARE DATA ERROR")
 			totalModNum = modLocs.length; // even worse now as we look for 21
-											// twice
+			// twice
 		}
 		// 24/5/17 Boss wants me to try with the expected number of mods...
 		// hence the +totalModNum.
 		// I used to check for zero mods being there to totalModNum as I need to
 		// id the underlying peptide.
-		for (var num = 0 + totalModNum; num <= totalModNum; num++) { // as
-																		// some
-																		// mods
-																		// fall
-																		// off
-																		// we
-																		// are
-																		// going
-																		// to
-																		// check
-																		// for 0
-																		// mods
-																		// to
-																		// num
-																		// mods
+		for (var num = 0 + totalModNum; num <= totalModNum; num++) {
+			// as some mods fall off we are going to check for 0 mods to num
+			// mods
 			var subIonsets = getIonsetForAllMods(currPeptide, modLocs, num); // an
-																				// array
-																				// of
-																				// ionsets
-																				// to
-																				// score
-																				// containing
-																				// num
-																				// number
-																				// of
-																				// mods
-			// ionsets look good.
+			// array of ionsets to score containing num number of mods ionsets
+			// look good.
 			// console.log("ionset0="+JSON.stringify(subIonsets[0]));
 
 			for (var s = 0; s < subIonsets.length; s++) {
-
 				subIonsets[s] = matchSpectraWithIonSet(myWorkUnit.fragments,
 						subIonsets[s]); // for each ionset we log matches with
-										// ms2 fragments
-				scoreObj = scoreIonset(subIonsets[s]); // score the ionset
-														// (matched ions and ion
-														// ladders)
+				// ms2 fragments
+				scoreObj = scoreIonset(subIonsets[s]);
+				// score the ionset (matched ions and ion ladders)
 
-				if (scoreObj.score >= currScoreObj.score) { // CHANGE FROM > TO
-															// >= and matched
-															// mascot
-															// better!!!!!
+				if (scoreObj.score >= currScoreObj.score) {
+					// CHANGE FROM > TO >= and matched mascot better!!!!!
 					currScoreObj.score = scoreObj.score
-					currScoreObj.modPos = subIonsets[s].modPos.slice(); // place
-																		// modPos
-																		// structure
-																		// [ModLoc]
-																		// is
-																		// kept
-																		// with
-																		// score
+					currScoreObj.modPos = subIonsets[s].modPos.slice();
+					// place modPos structure [ModLoc] is kept with score
 					currScoreObj.ionsMatched = scoreObj.ionsMatched;
 				}
 			}
 		}
+
 		// currScoreObj = best score, ion-match and modPos of this best score
 		resObj.score = currScoreObj.score;
 		resObj.ionsMatched = currScoreObj.ionsMatched;
 		// sort out resobj mod positions
-		for (var i = 0; i < currScoreObj.modPos.length; i++) { // //currScoreObj.modPos
-																// is an array
-																// of ModLocs
+		for (var i = 0; i < currScoreObj.modPos.length; i++) {
+			// currScoreObj.modPos is an array of ModLocs
 			var m = currScoreObj.modPos[i].modIndex;
 			var p = currScoreObj.modPos[i].possLoc;
 			resObj.mods[m].position.push(p); // to resObj.mod[].position;
@@ -382,7 +344,6 @@ function doThirdPhaseSearch(myWorkUnit) {
 		// For the moment I have to bulk out the position field to be equal to
 		// number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
-
 		for (var m = 0; m < resObj.mods.length; m++) {
 			if (resObj.mods[m].position.length < currPeptide.mods[m].num) {
 				var n = currPeptide.mods[m].num
@@ -394,6 +355,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 		}
 		allPeptideScores.push(resObj);
 	}
+
 	allPeptideScores.sort(function(a, b) {
 		return b.score - a.score
 	});
@@ -423,14 +385,14 @@ function doThirdPhaseSearch(myWorkUnit) {
 
 function getTotalModNum(myPeptide) {
 	var mnum = 0;
-	for (var mod = 0; mod < myPeptide.mods.length; mod++) { // we may have more
-															// than one possible
-															// modification per
-															// peptide
+	for (var mod = 0; mod < myPeptide.mods.length; mod++) {
+		// we may have more than one possible modification per peptide
 		mnum += myPeptide.mods[mod].num;
 	}
+
 	return mnum;
 }
+
 function getInitialResObj(myPeptide) {
 	var resObj = {
 		id : myPeptide.id,
@@ -438,16 +400,21 @@ function getInitialResObj(myPeptide) {
 		score : 0,
 		mods : []
 	};
+
 	if (myPeptide.mods === undefined) {
 		return resObj;
 	}
+
 	for (var mod = 0; mod < myPeptide.mods.length; mod++) {
 		var modp = {
 			id : myPeptide.mods[mod].id,
 			position : []
 		};
-		resObj.mods.push(modp); // flush out resObj.mods[]
+
+		resObj.mods.push(modp);
+		// flush out resObj.mods[]
 	}
+	
 	return resObj;
 }
 
@@ -455,15 +422,12 @@ function getAllModLocs(myPeptide) {
 	var mlocs = [];
 	if (myPeptide.mods == undefined)
 		return mlocs;
-	for (var mod = 0; mod < myPeptide.mods.length; mod++) { // we may have more
-															// than one possible
-															// modification per
-															// peptide
-		// FUDGE
+	for (var mod = 0; mod < myPeptide.mods.length; mod++) {
+		// we may have more than one possible modification per peptide FUDGE
 		if (myPeptide.mods[mod].id === PHOSPHORYLATION) {
 			myPeptide.mods[mod].residues = "STY";
-			// myPeptide.mods[mod].mass -= PHOSPHO_LOSS; //lets just do phospho
-			// loss!
+			// myPeptide.mods[mod].mass -= PHOSPHO_LOSS;
+			// lets just do phospho loss!
 		}
 		// END FUDGE
 		var possLocs = createIndexofPossibleLocations3(myPeptide.sequence,
@@ -477,18 +441,24 @@ function getAllModLocs(myPeptide) {
 	mlocs.sort(function(a, b) {
 		return a.possLoc - b.possLoc
 	}); // why do we sort it? to shuffle the mods?
+
 	return mlocs;
 }
 
 function getIonsetForAllMods(myPeptide, modlocs, num) {
-	var ionSetArray = []; // array ionsets to return
-	var combArray = []; // combination array when dealing with more than one
-						// number of modifications of one type
+	// array ionsets to return
+	var ionSetArray = [];
+	
+	// combination array when dealing with more than one number of modifications
+	// of one type
+	var combArray = [];
+	
 	// /var modMass = myMod.mass //shorthand;
+	
 	var MUCH_TOO_MUCH = 10000; // Arbitrary value at which point it becomes to
-								// large causing memory issues and to long to
-								// process (Server will assume dropped
-								// connection)
+	// large causing memory issues and to long to
+	// process (Server will assume dropped
+	// connection)
 
 	// search for none modified peptide - may well be here (Peaks PTM) and gives
 	// a basal score for peptide.
@@ -497,6 +467,7 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 		ionSetArray.push(ions); // single ionset returned
 		return ionSetArray;
 	}
+	
 	// search for occurrence of a single modification at any of the possible
 	// possible locations
 	// the others may have fallen off. Finding a good ion match can reduce size
@@ -504,10 +475,10 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	if (num === 1) {
 		for (var ml = 0; ml < modlocs.length; ml++) {
 			var ions = getIonsFromArray3(myPeptide, [ modlocs[ml] ]); // an
-																		// array
-																		// of
-																		// one
-																		// modloc
+			// array
+			// of
+			// one
+			// modloc
 			ionSetArray.push(ions);
 		}
 		return ionSetArray;
@@ -525,57 +496,59 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	}
 
 	combArray = createArrayPossibleCombinations3(modlocs, modlocs.length, num); // combarray
-																				// now
-																				// in
-																				// form
-																				// of
-																				// [modlocs]
+	// now
+	// in
+	// form
+	// of
+	// [modlocs]
 
 	for (var c = 0; c < combArray.length; c++) {
 		var mlocs = combArray[c]; // mlocs = confirmed mods + combination to
-									// try
+		// try
 		// console.log("mlocs:"+JSON.stringify(mlocs)+" len:"+modlocs.length+"
 		// num:"+num+"conpos:"+conpos.length);
 		var ions = getIonsFromArray3(myPeptide, mlocs);
 
 		ionSetArray.push(ions);
 	}
+	
 	return ionSetArray;
 }
 
 function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
-												// modification at a time
+// modification at a time
 {
 	var ionSet = new Ionset(); // {modPos:[],bIons:[],yIons:[]}; //bIons =
-								// [{mass, match, intensity}]
+	// [{mass, match, intensity}]
 	var acid = ''; // amino acid character
 	var sequence = myPeptide.sequence; // 'ABCEF'
 
 	ionSet.modPos = mlocs.slice(); // initialise modpos with the array od
-									// {possloc,index,mass}
+	// {possloc,index,mass}
 
 	var cumulativeMass = 1.007276; // cumulative mass for b ions start with
-									// Water - OH which is H
+	// Water - OH which is H
 	cumulativeMass += checkforFixedPTM('['); // is a fixed mod an amine
-												// terminus?
+	// terminus?
 	for (var b = 0; b < (sequence.length); b++) {
 		var ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
 		acid = sequence.charAt(b);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
+		
 		for (var ml = 0; ml < mlocs.length; ml++) {
 			if (b === (mlocs[ml].possLoc - 1)) {
 				cumulativeMass += mlocs[ml].vModMass;
 				ionObj.modFlag = true;
 			}
 		}
+		
 		ionObj.mass = cumulativeMass;
-
 		ionSet.bIons.push(ionObj);
 	}
 
 	cumulativeMass = 18.010565 + 1.007276; // start with H + water
 	cumulativeMass += checkforFixedPTM(']'); // is a fixed mod a carboxyl
-												// end?
+	// end?
 
 	for (var y = sequence.length - 1; y >= 0; y--) {
 		var ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
@@ -590,6 +563,7 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 		ionObj.mass = cumulativeMass;
 		ionSet.yIons.push(ionObj);
 	}
+	
 	return ionSet;
 }
 
@@ -614,11 +588,12 @@ function createIndexofPossibleLocations3(sequence, residues) {
 			for (pos = 0; pos < sequence.length; pos++) {
 				if (sequence[pos] === res) {
 					posloc.push(pos + 1); // using modified location 1 =
-											// position zero
+					// position zero
 				}
 			}
 		}
 	}
+	
 	return posloc;
 }
 
@@ -631,8 +606,8 @@ function uniqueArrayConcat(first, second, maxlen) {
 	}
 
 	for (var s = 0; s < second.length; s++) { // check new locations held in
-												// contemp[] to see if already
-												// in conpos
+		// contemp[] to see if already
+		// in conpos
 		var val = second[s];
 		var valmatch = false;
 		for (var f = 0; f < first.length; f++) {
@@ -640,10 +615,11 @@ function uniqueArrayConcat(first, second, maxlen) {
 				valmatch = true; // already in conpos so no need to add this
 			}
 		}
+		
 		if (!valmatch) {
 			if (first.length < maxlen) {
 				first.push(val); // new one found in this ions set so add to
-									// end;
+				// end;
 			}
 		}
 	}
@@ -659,6 +635,7 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 	for (var i = 0; i <= n; i++) {
 		values[i] = i;
 	}
+	
 	// initialize permutations
 	var perm = [];
 	for (var i = 0; i < n; i++) {
@@ -668,6 +645,7 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 			perm[i] = 0;
 		}
 	}
+	
 	perm.sort();
 
 	whileloop: while (true) {
@@ -678,12 +656,14 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 				subresult.push(values[i]);
 			}
 		}
+		
 		result.push(subresult);
 		// get next permutation
 		for (var i = n - 1; i > 0; i--) {
 			if (perm[i - 1] === 1) {
 				continue;
 			}
+			
 			if (perm[i] === 1) {
 				perm[i - 1] = 1;
 				perm[i] = 0;
@@ -701,20 +681,25 @@ function createArrayPossibleCombinations3(locArray, n, k) {
 		retObj[i] = [];
 		for (var j = 0; j < k; j++) {
 			retObj[i][j] = locArray[result[i][j]]; // create actual mod
-													// location.
+			// location.
 		}
 	}
+	
 	return retObj;
 }
+
 function getCombinations(n, k) {
 	var nfac = getFactorial(n);
 	var kfac = getFactorial(k);
 	var nsubkfac = getFactorial(n - k);
+	
 	return nfac / (kfac * nsubkfac);
 }
+
 function getFactorial(f) {
 	var r = 1
 	for (; f > 0; r *= f, f--) {
 	}
+	
 	return r;
 }
