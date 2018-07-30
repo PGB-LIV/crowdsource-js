@@ -244,7 +244,7 @@ function phosphoModExpected(peptide) {
 	return false;
 }
 
-if (typeof Math.log10 == "undefined") {
+if (typeof Math.log10 === "undefined") {
 	Object.prototype.log10 = function(n) {
 		return Math.log(n) / Math.log(10);
 	};

@@ -314,10 +314,6 @@ function checkforFixedPTM(res) {
  * Web Worker
  */
 function doSearch(data) {
-	if (typeof (data.job) === undefined) {
-		return;
-	}
-
 	g_myWorkUnit = data;
 
 	// change the defaults if phase2/3 ion matches are more important.
