@@ -15,19 +15,21 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-var BLOB = true; // true if cross domian required
 
 /**
  * The PHP that handles data requests and accepts results (will need to go to
  * master)
  */
-var PROVIDER_PHP = "http://pgb.liv.ac.uk/~andrew/crowdsource-server/src/public_html/job.php";
+var MASTER_URL = "http://pgb.liv.ac.uk/~andrew/crowdsource-server/src/public_html/job.php";
+var SCRIPT_URL = "http://pgb.liv.ac.uk/~andrew/crowdsource-js/src/";
+var CALLBACK = "parseResult";
+var MAX_JOB_COUNT = 10;
+var JOB_COUNT = 0;
 
 /**
  * WebWorker instance
  */
 var myWorker;
-var myWorkUnit;
 
 /**
  * Security constraints stop us building a cross domain worker. We need to add
@@ -42,45 +44,27 @@ var BuildWorker = function(foo) {
 	})));
 };
 
-if (typeof (Worker) == "undefined") {
-	throw new Error("WebWorker unsupported");
-}
-
-initialiseWorker();
-console.log("myWorker = " + myWorker);
-requestWorkUnit();
-console.log("requested first Work unit");
-
 function initialiseWorker() {
-	if (BLOB) {
-		myWorker = BuildWorker(function() {
-			var WORKER_LOCATION = "http://pgb.liv.ac.uk/~johnheap/crowdsource-server/src/public_html/javascript/";
-			// will need to go to master
-			importScripts(WORKER_LOCATION + "cs_worker.js");
-			importScripts(WORKER_LOCATION + "thirdphase_worker.js");
+	myWorker = BuildWorker(function() {
+		// will need to go to master
+		importScripts(SCRIPT_URL + "cs_worker.js");
+		importScripts(SCRIPT_URL + "thirdphase_worker.js");
+	});
 
-		});
-	} else {
-		myWorker = new Worker(
-				"http://pgb.liv.ac.uk/~johnheap/crowdsource-server/src/public_html/javascript/no_blob_worker.js");
-	}
+	// worker communicates with the main js via JSON strings
+	myWorker.onmessage = function(e) {
+		sendResult(e.data);
+	};
 }
 
 function receiveWorkUnit(json) {
-	console.log("received a workunit");
-	myWorkUnit = JSON.stringify(json);
-	console.log("received a workunit: " + myWorkUnit);
-	// on receiving workUnit it will get to work
-	myWorker.postMessage(myWorkUnit);
-}
-
-// worker communicates with the main js via JSON strings
-myWorker.onmessage = function(e) {
-	var workerResponse = JSON.parse(e.data);
-	if (typeof (workerResponse.job) !== "undefined") {
-		sendResult(JSON.stringify(workerResponse));
+	if (myWorker === undefined) {
+		doSearch(json);
+		return;
 	}
-};
+
+	myWorker.postMessage(json);
+}
 
 // terminate session event. Also occurs on Refresh.
 $(window).on("beforeunload", function() {
@@ -90,20 +74,48 @@ $(window).on("beforeunload", function() {
 	}
 });
 
+if (typeof (Worker) !== "undefined") {
+	$.ajax({
+		url : SCRIPT_URL + 'cs_worker.js',
+		dataType : 'script',
+		async : false
+	});
+
+	$.ajax({
+		url : SCRIPT_URL + 'thirdphase_worker.js',
+		dataType : 'script',
+		async : false
+	});
+
+	console.info("WebWorker not available");
+} else {
+	initialiseWorker();
+}
+
+requestWorkUnit();
+
 /**
  * Server Communication
  */
 
 function requestWorkUnit() {
-	$.getScript(PROVIDER_PHP + "?r=workunit");
+	if (JOB_COUNT > MAX_JOB_COUNT) {
+		return;
+	}
+
+	JOB_COUNT++;
+	$.getScript(MASTER_URL + "?r=workunit&callback=" + CALLBACK);
 }
 
-function sendResult(resultString) {
-	$.getScript(PROVIDER_PHP + "?r=result&result=" + resultString);
+function sendResult(resultObject) {
+	var resultString = JSON.stringify(resultObject);
+
+	$.getScript(MASTER_URL + "?r=result&result=" + resultString + "&callback="
+			+ CALLBACK);
 }
 
 function sendTerminating() {
-	$.getScript(PROVIDER_PHP + "?r=terminate");
+	$.getScript(MASTER_URL + "?r=terminate&callback=" + CALLBACK);
 }
 
 /**
@@ -113,18 +125,19 @@ function sendTerminating() {
 function parseResult(json) {
 	if (typeof (json.job) !== "undefined") {
 		// If job is defined, work unit has been sent
+
+		console.log("Received work unit" + JOB_COUNT);
 		receiveWorkUnit(json);
 		return;
 	}
 
 	switch (json.type) {
-	case "nomore":
-		console.log("All done.");
-		break;
 	case "confirmation":
+		console.log("Requesting work unit");
 		requestWorkUnit();
 		break;
 	default:
+	case "nomore":
 		break;
 	}
 }

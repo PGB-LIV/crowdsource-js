@@ -34,7 +34,7 @@ var PHOSPHO2_LOSS = 115.987;
  *          {job,precursor,peptides[{id,ionsMatched,score,mods[{id,position[]}]}]}
  */
 function doModSearch(myWorkUnit) {
-
+	console.warn("doModSearch");
 	// console.log(JSON.stringify(myWorkUnit.peptides));
 	var allPeptideScores = []; // made up of {peptide id, ionsmatched, score
 	// mods:[{ id,position[] }]}
@@ -43,7 +43,7 @@ function doModSearch(myWorkUnit) {
 		var resObj = getInitialResObj(currPeptide); // fills out a peptide
 		// results object with correct peptide and mod ids
 		// {id,ionsMatched,score,mods[{id,position[]}]}
-		
+
 		var currScoreObj;
 		if (phosphoModExpected(currPeptide)) {
 
@@ -119,10 +119,10 @@ function doModSearch(myWorkUnit) {
 	// var instring = JSON.stringify(myWorkUnit);
 	// console.log("Work Unir: "+instring);
 	var retString = JSON.stringify(resultObject);
-	console.log("The return string = " + retString);
-	console.log("pre = " + resultObject.precursor);
-	postMessage(retString);
+	console.log("doModSearch return string = " + retString);
+	console.log("doModSearch pre = " + resultObject.precursor);
 
+	postMessage(retString);
 }
 
 /**
@@ -143,19 +143,18 @@ function scorePeptide(currPeptide) {
 	// holds the best so far score for this peptide modification )positions
 	// held in modpos[{pos,index,mass}]
 	var totalModNum = getTotalModNum(currPeptide);
-	var modLocs = getAllModLocs(currPeptide); // Array of ModLoc objects (all
-	// possible locations of all
-	// modifications reported)
-	// ModLoc objects are
-	// {possLoc,modIndex,vModMass}]
+
+	// Array of ModLoc objects (all possible locations of all modifications
+	// reported) ModLoc objects are {possLoc,modIndex,vModMass}]
+	var modLocs = getAllModLocs(currPeptide);
 
 	// just check..
 	if (modLocs.length < totalModNum) {
 		// we are looking for more mods than possible with this residue because
 		// we cheat and place STY when ANDREW's data has full complement.
 		console.log("BEWARE DATA ERROR");
-		totalModNum = modLocs.length; // even worse now as we look for 21
-		// twice
+		// even worse now as we look for 21 twice
+		totalModNum = modLocs.length;
 	}
 
 	// 24/5/17 Boss wants me to try with the expected number of mods
@@ -336,12 +335,6 @@ function doThirdPhaseSearch(myWorkUnit) {
 			resObj.mods[m].position.push(p); // to resObj.mod[].position;
 		}
 
-		if (resObj.ionsMatched > 2) {
-			console.log("Peptide:" + currPeptide.id + ", "
-					+ currPeptide.sequence + "\n" + JSON.stringify(resObj)
-					+ "\n---------");
-		}
-
 		// For the moment I have to bulk out the position field to be equal to
 		// number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
@@ -375,13 +368,14 @@ function doThirdPhaseSearch(myWorkUnit) {
 		resultObject.peptides.push(allPeptideScores[r]);
 		// }
 	}
-	// var instring = JSON.stringify(myWorkUnit);
-	// console.log("Work Unir: "+instring);
-	var retString = JSON.stringify(resultObject);
-	console.log("The return string = " + retString);
-	console.log("pre = " + resultObject.precursor);
-	postMessage(retString);
 
+	if (typeof WorkerGlobalScope !== 'undefined'
+			&& self instanceof WorkerGlobalScope) {
+		postMessage(resultObject);
+		return;
+	}
+
+	sendResult(resultObject);
 }
 
 function getTotalModNum(myPeptide) {
@@ -464,8 +458,9 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	// search for none modified peptide - may well be here (Peaks PTM) and gives
 	// a basal score for peptide.
 	if (num === 0) {
-		ionSetArray.push(getIonsFromArray3(myPeptide, [], 0)); // single ionset returned
-		
+		ionSetArray.push(getIonsFromArray3(myPeptide, [], 0)); // single ionset
+		// returned
+
 		return ionSetArray;
 	}
 
@@ -477,7 +472,7 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 		for (var ml = 0; ml < modlocs.length; ml++) {
 			ionSetArray.push(getIonsFromArray3(myPeptide, [ modlocs[ml] ]));
 		}
-		
+
 		return ionSetArray;
 	}
 
@@ -553,7 +548,7 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 		ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
 		acid = sequence.charAt(y);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
-		
+
 		for (loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
 			if (y === (mlocs[loopIndex].possLoc - 1)) {
 				cumulativeMass += mlocs[loopIndex].vModMass;
