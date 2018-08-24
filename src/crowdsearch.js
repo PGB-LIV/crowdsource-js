@@ -23,7 +23,7 @@
 var MASTER_URL = "http://pgb.liv.ac.uk/~andrew/crowdsource-server/src/public_html/job.php";
 var SCRIPT_URL = "http://pgb.liv.ac.uk/~andrew/crowdsource-js/src/";
 var CALLBACK = "parseResult";
-var MAX_JOB_COUNT = 10;
+var MAX_JOB_COUNT = 0;
 var JOB_COUNT = 0;
 
 /**
@@ -35,18 +35,19 @@ var myWorker;
  * Security constraints stop us building a cross domain worker. We need to add
  * it to our instance via a Blob URL
  */
-var BuildWorker = function(foo) {
-	var str = foo.toString().match(
-			/^\s*function\s*\(\s*\)\s*\{(([\s\S](?!\}$))*[\s\S])/)[1];
-
-	return new Worker(window.URL.createObjectURL(new Blob([ str ], {
-		type : 'text/javascript'
-	})));
-};
-
 function initialiseWorker() {
+	var BuildWorker = function(foo) {
+		var str = foo.toString().match(
+				/^\s*function\s*\(\s*\)\s*\{(([\s\S](?!\}$))*[\s\S])/)[1];
+
+		return new Worker(window.URL.createObjectURL(new Blob([ str ], {
+			type : 'text/javascript'
+		})));
+	};
+
 	myWorker = BuildWorker(function() {
 		// will need to go to master
+		var SCRIPT_URL = "http://pgb.liv.ac.uk/~andrew/crowdsource-js/src/";
 		importScripts(SCRIPT_URL + "cs_worker.js");
 		importScripts(SCRIPT_URL + "thirdphase_worker.js");
 	});
@@ -57,15 +58,6 @@ function initialiseWorker() {
 	};
 }
 
-function receiveWorkUnit(json) {
-	if (myWorker === undefined) {
-		doSearch(json);
-		return;
-	}
-
-	myWorker.postMessage(json);
-}
-
 // terminate session event. Also occurs on Refresh.
 $(window).on("beforeunload", function() {
 	if (typeof (w) !== "undefined") {
@@ -74,7 +66,7 @@ $(window).on("beforeunload", function() {
 	}
 });
 
-if (typeof (Worker) !== "undefined") {
+if (typeof (Worker) === "undefined") {
 	$.ajax({
 		url : SCRIPT_URL + 'cs_worker.js',
 		dataType : 'script',
@@ -89,6 +81,7 @@ if (typeof (Worker) !== "undefined") {
 
 	console.info("WebWorker not available");
 } else {
+	console.info("WebWorker available");
 	initialiseWorker();
 }
 
@@ -99,12 +92,20 @@ requestWorkUnit();
  */
 
 function requestWorkUnit() {
-	if (JOB_COUNT > MAX_JOB_COUNT) {
+	if (MAX_JOB_COUNT > 0 && JOB_COUNT >= MAX_JOB_COUNT) {
 		return;
 	}
 
-	JOB_COUNT++;
 	$.getScript(MASTER_URL + "?r=workunit&callback=" + CALLBACK);
+}
+
+function receiveWorkUnit(json) {
+	if (myWorker === undefined) {
+		doSearch(json);
+		return;
+	}
+
+	myWorker.postMessage(json);
 }
 
 function sendResult(resultObject) {
@@ -125,8 +126,8 @@ function sendTerminating() {
 function parseResult(json) {
 	if (typeof (json.job) !== "undefined") {
 		// If job is defined, work unit has been sent
-
-		console.log("Received work unit" + JOB_COUNT);
+		JOB_COUNT++;
+		console.info("Job " + JOB_COUNT + "/" + MAX_JOB_COUNT + " received.");
 		receiveWorkUnit(json);
 		return;
 	}
@@ -136,8 +137,16 @@ function parseResult(json) {
 		console.log("Requesting work unit");
 		requestWorkUnit();
 		break;
+	case "retry":
+		console.log("Server requests retry.");
+		setTimeout(requestWorkUnit, Math.floor((Math.random() * 10000) + 1000));
+		
+		break;
 	default:
 	case "nomore":
+		console.log("No work");
+		setTimeout(requestWorkUnit, Math.floor((Math.random() * 60000) + 30000));
 		break;
 	}
 }
+

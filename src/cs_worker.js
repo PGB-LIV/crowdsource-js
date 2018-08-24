@@ -47,6 +47,11 @@ var g_AAmass = {
 	X : 0
 };
 
+var ION_MATCH_SCALE = 20;
+var ION_DELTA_M_SCALE = 0;
+var ION_LADDER_SCALE = 30;
+var ION_INTENSITY_SCALE = 2;
+
 function Ionset() {
 	/**
 	 * an array of ModLocs
@@ -91,11 +96,6 @@ function ModLoc(ploc, modindex, modmass) {
 	 */
 	this.vModMass = modmass;
 }
-
-var ION_MATCH_SCALE = 20;
-var ION_DELTA_M_SCALE = 0;
-var ION_LADDER_SCALE = 30;
-var ION_INTENSITY_SCALE = 2;
 
 function scoreIonset(ionSet) {
 	var scoreObj = {
@@ -151,6 +151,7 @@ function scoreIonset(ionSet) {
 	scoreObj.score = scoreObj.score.toFixed(2);
 	scoreObj.score *= 1;
 	scoreObj.ionsMatched = bcount + ycount;
+	
 	return scoreObj;
 }
 
@@ -216,17 +217,17 @@ function matchSpectraWithIonSet(spectra, ionSet, checkloss) {
 	var resultObject = {
 		deltaM : 0,
 		intensity : 0
-	}; // modifying
+	};
+
+	// modifying
 	for (var b = 0; b < ionSet.bIons.length; b++) {
 		resultObject = massFoundInSpectra(spectra, ionSet.bIons[b].mass,
 				checkloss);
 		ionSet.bIons[b].deltaM = resultObject.deltaM;
 		ionSet.bIons[b].intensity = resultObject.intensity;
 		if (ionSet.bIons[b].intensity !== 0) {
-			ionSet.bIons[b].match = true; // could remove this and
-			// use non zero
-			// intensity as match
-			// boolean
+			// could remove this and use non zero intensity as match boolean
+			ionSet.bIons[b].match = true;
 		}
 	}
 
@@ -240,8 +241,9 @@ function matchSpectraWithIonSet(spectra, ionSet, checkloss) {
 		}
 	}
 
-	return ionSet; // we've modified it I know don't need to return it
-	// as modified by function but it makes it explicit.
+	// we've modified it I know don't need to return it as modified by function
+	// but it makes it explicit.
+	return ionSet;
 }
 
 // Is ion mass (mass) found in ms2 spectrum (spectra) returns zero if no match
