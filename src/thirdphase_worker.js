@@ -236,8 +236,8 @@ function doThirdPhaseSearch(myWorkUnit) {
 		}
 
 		// currScoreObj = best score, ion-match and modPos of this best score
-		resObj.score = currScoreObj.score;
-		resObj.ionsMatched = currScoreObj.ionsMatched;
+		resObj.S = currScoreObj.score;
+		resObj.IM = currScoreObj.ionsMatched;
 
 		// sort out resobj mod positions
 		for (var i = 0; i < currScoreObj.modPos.length; i++) {
@@ -309,8 +309,8 @@ function getTotalModNum(peptide) {
 function getInitialResObj(myPeptide) {
 	var resObj = {
 		id : myPeptide.id,
-		ionsMatched : 0,
-		score : 0,
+		IM : 0,
+		S : 0,
 		mods : []
 	};
 
