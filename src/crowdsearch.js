@@ -66,7 +66,9 @@ $(window).on("beforeunload", function() {
 	}
 });
 
-if (typeof (Worker) === "undefined") {
+console.info("WebWorker " + typeof (window.Worker));
+
+if (typeof (Worker) === "undefined" || typeof (DEV_JOB) !== "undefined") {
 	$.ajax({
 		url : SCRIPT_URL + 'cs_worker.js',
 		dataType : 'script',
@@ -79,18 +81,23 @@ if (typeof (Worker) === "undefined") {
 		async : false
 	});
 
-	console.info("WebWorker not available");
+	console.warn("WebWorker not available");
 } else {
 	console.info("WebWorker available");
 	initialiseWorker();
 }
 
-requestWorkUnit();
+if (typeof (DEV_JOB) !== "undefined") {
+	console.warn("Debugging");
+	console.warn(DEV_JOB);
+	receiveWorkUnit(JSON.parse(DEV_JOB));
+} else {
+	requestWorkUnit();
+}
 
 /**
  * Server Communication
  */
-
 function requestWorkUnit() {
 	if (MAX_JOB_COUNT > 0 && JOB_COUNT >= MAX_JOB_COUNT) {
 		return;
@@ -110,6 +117,11 @@ function receiveWorkUnit(json) {
 
 function sendResult(resultObject) {
 	var resultString = JSON.stringify(resultObject);
+
+	if (typeof (DEV_JOB) !== "undefined") {
+		console.log(resultString);
+		return;
+	}
 
 	$.getScript(MASTER_URL + "?r=result&result=" + resultString + "&callback="
 			+ CALLBACK);
@@ -140,7 +152,7 @@ function parseResult(json) {
 	case "retry":
 		console.log("Server requests retry.");
 		setTimeout(requestWorkUnit, Math.floor((Math.random() * 10000) + 1000));
-		
+
 		break;
 	default:
 	case "nomore":
@@ -149,4 +161,3 @@ function parseResult(json) {
 		break;
 	}
 }
-

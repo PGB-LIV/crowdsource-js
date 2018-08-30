@@ -196,13 +196,12 @@ function doThirdPhaseSearch(myWorkUnit) {
 		var ptmRsD = 0.5;
 		var ptmRsW = 0;
 		for (var fragId = 0; fragId < ptmRsN; fragId++) {
-			ptmRsW = Math.max(ptmRsW, myWorkUnit.fragments[fragId].mz);			
+			ptmRsW = Math.max(ptmRsW, myWorkUnit.fragments[fragId].mz);
 		}
-		
+
 		// TODO: Remove hard coded window size
 		ptmRsW = Math.ceil(ptmRsW / 100) * 100;
-		
-		
+
 		var ptmRsP = ptmRsN * ptmRsD / ptmRsW;
 		for (var s = 0; s < subIonsets.length; s++) {
 			// for each ionset we log matches with ms2 fragments
@@ -408,14 +407,24 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	}
 
 	combArray = createArrayPossibleCombinations3(modlocs, modlocs.length, num); // combarray
-	// now
-	// in
-	// form
-	// of
-	// [modlocs]
+	// now in form of [modlocs]
 
 	for (var c = 0; c < combArray.length; c++) {
 		var mlocs = combArray[c]; // mlocs = confirmed mods + combination to
+
+		var uniqueMods = [];
+		for (var i = 0; i < mlocs.length; i++) {
+			if (uniqueMods.indexOf(mlocs[i].modIndex) >= 0) {
+				continue;
+			}
+
+			uniqueMods.push(mlocs[i].modIndex);
+		}
+
+		if (uniqueMods.length != num) {
+			continue;
+		}
+
 		// try
 		// console.log("mlocs:"+JSON.stringify(mlocs)+" len:"+modlocs.length+"
 		// num:"+num+"conpos:"+conpos.length);
