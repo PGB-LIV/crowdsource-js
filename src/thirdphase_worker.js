@@ -214,7 +214,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 			subIonMatches[s] = scoreObj.ionsMatched;
 		}
 
-		for (var s = 0; s < subIonsets.length; s++) {
+		for (s = 0; s < subIonsets.length; s++) {
 			var score1 = Math.pow(ptmRsP, subIonMatches[s]);
 			var score2 = Math.pow(1 - ptmRsP, ionMatchSum - subIonMatches[s]);
 			var score = score1 * score2;
@@ -245,6 +245,12 @@ function doThirdPhaseSearch(myWorkUnit) {
 			var p = currScoreObj.modPos[i].possLoc;
 			resObj.mods[m].position.push(p); // to resObj.mod[].position;
 		}
+
+		// DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG
+		// DEBUG DEBUG DEBUG DEBUG
+		// TODO: This code block is producing crap.
+		// It needs to use one of the ion positions or return no evidence.
+		// Trace back up and figure it out.
 
 		// For the moment I have to bulk out the position field to be equal to
 		// number of mods (if >=200 then I haven't found/cannot confirm a
@@ -337,14 +343,6 @@ function getAllModLocs(myPeptide) {
 	}
 
 	for (var mod = 0; mod < myPeptide.mods.length; mod++) {
-		// we may have more than one possible modification per peptide FUDGE
-		if (myPeptide.mods[mod].id === PHOSPHORYLATION) {
-			myPeptide.mods[mod].residues = "STY";
-			// myPeptide.mods[mod].mass -= PHOSPHO_LOSS;
-			// lets just do phospho loss!
-		}
-		// END FUDGE
-
 		var possLocs = createIndexofPossibleLocations3(myPeptide.sequence,
 				myPeptide.mods[mod].residues);
 
@@ -401,10 +399,10 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	// do a calculation first to see if do-able combinations rapidly get out of
 	// hand.
 	// number of combinations = n!/(k!(n-k)!)
-	if (getCombinations(modlocs.length, num) > MUCH_TOO_MUCH) {
-		console.log("Bailing: Array too large for me.");
-		return ionSetArray;
-	}
+	//if (getCombinations(modlocs.length, num) > MUCH_TOO_MUCH) {
+	//	console.log("Bailing: Array too large for me.");
+	//	return ionSetArray;
+	//}
 
 	combArray = createArrayPossibleCombinations3(modlocs, modlocs.length, num); // combarray
 	// now in form of [modlocs]
@@ -412,16 +410,23 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	for (var c = 0; c < combArray.length; c++) {
 		var mlocs = combArray[c]; // mlocs = confirmed mods + combination to
 
-		var uniqueMods = [];
-		for (var i = 0; i < mlocs.length; i++) {
-			if (uniqueMods.indexOf(mlocs[i].modIndex) >= 0) {
-				continue;
-			}
-
-			uniqueMods.push(mlocs[i].modIndex);
+		var modFreq = [];
+		for (var i = 0; i < myPeptide.mods.length; i++) {
+			modFreq[i] = 0;
 		}
 
-		if (uniqueMods.length != num) {
+		for (i = 0; i < mlocs.length; i++) {
+			modFreq[mlocs[i].modIndex]++;
+		}
+
+		var isMatch = true;
+		for (i = 0; i < myPeptide.mods.length; i++) {
+			if (modFreq[i] != myPeptide.mods[i].num) {
+				isMatch = false;
+			}
+		}
+
+		if (!isMatch) {
 			continue;
 		}
 
