@@ -235,7 +235,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 		}
 
 		// currScoreObj = best score, ion-match and modPos of this best score
-		resObj.S = currScoreObj.score;
+		resObj.S = Math.round(currScoreObj.score * 100000) / 100000;
 		resObj.IM = currScoreObj.ionsMatched;
 
 		// sort out resobj mod positions
@@ -243,7 +243,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 			// currScoreObj.modPos is an array of ModLocs
 			var m = currScoreObj.modPos[i].modIndex;
 			var p = currScoreObj.modPos[i].possLoc;
-			resObj.mods[m].position.push(p); // to resObj.mod[].position;
+			resObj.mods[m].P.push(p); // to resObj.mod[].position;
 		}
 
 		// DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG
@@ -256,11 +256,11 @@ function doThirdPhaseSearch(myWorkUnit) {
 		// number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
 		for (var index = 0; index < resObj.mods.length; index++) {
-			if (resObj.mods[index].position.length < currPeptide.mods[index].num) {
+			if (resObj.mods[index].P.length < currPeptide.mods[index].num) {
 				var n = currPeptide.mods[index].num
-						- resObj.mods[index].position.length;
+						- resObj.mods[index].P.length;
 				for (var t = 0; t < n; t++) {
-					resObj.mods[index].position.push(200 + t);
+					resObj.mods[index].P.push(200 + t);
 				}
 			}
 		}
@@ -326,7 +326,7 @@ function getInitialResObj(myPeptide) {
 	for (var mod = 0; mod < myPeptide.mods.length; mod++) {
 		var modp = {
 			id : myPeptide.mods[mod].id,
-			position : []
+			P : []
 		};
 
 		resObj.mods.push(modp);
@@ -511,7 +511,7 @@ function createIndexofPossibleLocations3(sequence, residues) {
 			pos = 0;
 			posloc.push(pos);
 		} else if (res === ']') {
-			pos = residues.length + 1;
+			pos = sequence.length + 1;
 			posloc.push(pos);
 		} else {
 			for (pos = 0; pos < sequence.length; pos++) {
