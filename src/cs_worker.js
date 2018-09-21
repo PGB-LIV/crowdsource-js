@@ -47,11 +47,6 @@ var g_AAmass = {
 	X : 0
 };
 
-var ION_MATCH_SCALE = 20;
-var ION_DELTA_M_SCALE = 0;
-var ION_LADDER_SCALE = 30;
-var ION_INTENSITY_SCALE = 2;
-
 function Ionset() {
 	/**
 	 * an array of ModLocs
@@ -98,114 +93,22 @@ function ModLoc(ploc, modindex, modmass) {
 }
 
 function scoreIonset(ionSet) {
-	var scoreObj = {
-		ionsMatched : 0,
-		score : 0
-	};
-
 	var bcount = 0;
-	var bintensity = 1;
-	var bscore = 0;
 	var ycount = 0;
-	var yscore = 0;
-	var yintensity = 1; /* as log 0 = null */
 
 	for (var b = 0; b < ionSet.bIons.length; b++) {
 		if (ionSet.bIons[b].match) {
 			bcount++;
-			bintensity += ionSet.bIons[b].intensity;
 		}
 	}
-
-	// 0 - 25% for example.
-	bscore = (ION_MATCH_SCALE * bcount) / ionSet.bIons.length;
-	bscore += (ION_INTENSITY_SCALE * Math.log10(bintensity) / ionSet.bIons.length);
 
 	for (var y = 0; y < ionSet.yIons.length; y++) {
 		if (ionSet.yIons[y].match) {
 			ycount++;
-			yintensity += ionSet.yIons[y].intensity;
 		}
 	}
 
-	// 0 -25 for example
-	yscore = (ION_MATCH_SCALE * ycount) / ionSet.yIons.length;
-	yscore += (ION_INTENSITY_SCALE * Math.log10(yintensity) / ionSet.yIons.length);
-
-	// the idea being that true discoveries will have more intact ion ladders
-	var consecResult = check_consecutive_ions(ionSet);
-	bscore += (ION_LADDER_SCALE * consecResult.bconseq) / ionSet.bIons.length;
-	yscore += (ION_LADDER_SCALE * consecResult.yconseq) / ionSet.yIons.length;
-
-	scoreObj.score = yscore + bscore;
-	/*
-	 * we have modified the score in all cases by dividing by the peptide length
-	 * //so 4 counts of 8 res peptide is better than 4 counts of 16 res
-	 * peptide... //but 8 counts of 16 res peptide is notionally better than 4
-	 * counts of 8 res peptide. Can we also modifiy the score by a samll factor
-	 * based on length. //try
-	 */
-
-	scoreObj.score = scoreObj.score * (1 + (ionSet.bIons.length / 120));
-
-	scoreObj.score = scoreObj.score.toFixed(2);
-	scoreObj.score *= 1;
-	scoreObj.ionsMatched = bcount + ycount;
-	
-	return scoreObj;
-}
-
-/*
- * Differentiation between real and decoy data is enhanced by scoring
- * consecutive ions //This function doesn't take into account the length of the
- * peptide - this is adjusted for by the calling function scoreIonset(ionSet)
- */
-function check_consecutive_ions(ionSet) {
-	var MININUM_CONSECUTIVE_COUNT = 3; // ignore if less than this
-	// number of consecutive ions
-	var bconseq = 0;
-	var yconseq = 0;
-	var bcnt = 0;
-	var ycnt = 0;
-	var consecResult = {
-		bconseq : 0,
-		yconseq : 0
-	};
-
-	for (var b = 0; b < ionSet.bIons.length; b++) {
-		if (ionSet.bIons[b].match) {
-			bcnt++;
-			if (bcnt > bconseq) {
-				bconseq = bcnt;
-			}
-		} else {
-			bcnt = 0;
-		}
-	}
-
-	for (var y = 0; y < ionSet.yIons.length; y++) {
-		if (ionSet.yIons[y].match) {
-			ycnt++;
-			if (ycnt > yconseq) {
-				yconseq = ycnt;
-			}
-		} else {
-			ycnt = 0;
-		}
-	}
-
-	if (bconseq < MININUM_CONSECUTIVE_COUNT) {
-		bconseq = 0;
-	}
-
-	if (yconseq < MININUM_CONSECUTIVE_COUNT) {
-		yconseq = 0;
-	}
-
-	consecResult.bconseq = bconseq;
-	consecResult.yconseq = yconseq;
-
-	return consecResult;
+	return bcount + ycount;
 }
 
 // common
@@ -214,10 +117,7 @@ function matchSpectraWithIonSet(spectra, ionSet, checkloss) {
 		checkloss = true;
 	}
 
-	var resultObject = {
-		deltaM : 0,
-		intensity : 0
-	};
+	var resultObject;
 
 	// modifying
 	for (var b = 0; b < ionSet.bIons.length; b++) {
@@ -291,25 +191,25 @@ function massFoundInSpectra(spectra, mass, checkloss) {
 			}
 		}
 	}
+	
 	return resultObject;
 }
 
 function checkforFixedPTM(res) {
-	var masstoadd = 0;
+	var massShift = 0;
 	for (var m = 0; m < g_myWorkUnit.fixedMods.length; m++) {
-		if (g_myWorkUnit.fixedMods[m].residues.length > 1) { // just to
-			// check...
+		if (g_myWorkUnit.fixedMods[m].residues.length > 1) { 
+			// just to check...
 			console.log("Fixed Mod needs looking at "
 					+ g_myWorkUnit.fixedMods[m].residues);
 		}
+		
 		if (g_myWorkUnit.fixedMods[m].residues === res) {
-			masstoadd += g_myWorkUnit.fixedMods[m].mass;
-			// console.log("Adding "+masstoadd+" to
-			// "+g_myWorkUnit.mods[m]['loc']);
+			massShift += g_myWorkUnit.fixedMods[m].mass;
 		}
 	}
 
-	return masstoadd;
+	return massShift;
 }
 
 /**
@@ -317,10 +217,6 @@ function checkforFixedPTM(res) {
  */
 function doSearch(data) {
 	g_myWorkUnit = data;
-
-	// change the defaults if phase2/3 ion matches are more important.
-	ION_MATCH_SCALE = 30;
-	ION_LADDER_SCALE = 20;
 
 	// includes variable modifications
 	doThirdPhaseSearch(g_myWorkUnit);
