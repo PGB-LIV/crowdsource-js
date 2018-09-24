@@ -142,11 +142,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 		peptides : []
 	};
 
-	var PHASE2_MAX_NUMBER_SCORES = 75;
-	var outputCount = (myWorkUnit.peptides.length < PHASE2_MAX_NUMBER_SCORES) ? myWorkUnit.peptides.length
-			: PHASE2_MAX_NUMBER_SCORES;
-
-	for (var r = 0; r < outputCount; r++) {
+	for (var r = 0; r < myWorkUnit.peptides.length; r++) {
 		resultObject.peptides.push(allPeptideScores[r]);
 	}
 
