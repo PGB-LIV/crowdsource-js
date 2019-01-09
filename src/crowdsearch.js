@@ -136,7 +136,7 @@ function sendTerminating() {
  * "parseResult(Object)" P the response server
  */
 function parseResult(json) {
-	if (typeof (json.job) !== "undefined") {
+	if (typeof (json.uid) !== "undefined") {
 		// If job is defined, work unit has been sent
 		JOB_COUNT++;
 		console.info("Job " + JOB_COUNT + "/" + MAX_JOB_COUNT + " received.");

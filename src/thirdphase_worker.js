@@ -23,7 +23,7 @@ if (typeof Math.log10 === "undefined") {
 
 function doThirdPhaseSearch(myWorkUnit) {
 	// made up of {peptide id, ionsmatched, score, mods:[{ id,position[] }]}
-
+	var searchStart = Date.now();
 	var allPeptideScores = [];
 
 	for (var peptideIndex = 0; peptideIndex < myWorkUnit.peptides.length; peptideIndex++) {
@@ -94,7 +94,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 					score = -10 * Math.log10(score)
 				}
 			}
-			
+
 			// Select best candidate
 			if (score >= currScoreObj.score) {
 				currScoreObj.score = score;
@@ -137,8 +137,8 @@ function doThirdPhaseSearch(myWorkUnit) {
 	});
 
 	var resultObject = {
-		job : myWorkUnit.job,
-		precursor : myWorkUnit.precursor,
+		uid : myWorkUnit.uid,
+		processTime : Date.now() - searchStart,
 		peptides : []
 	};
 

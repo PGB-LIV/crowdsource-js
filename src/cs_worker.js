@@ -191,19 +191,19 @@ function massFoundInSpectra(spectra, mass, checkloss) {
 			}
 		}
 	}
-	
+
 	return resultObject;
 }
 
 function checkforFixedPTM(res) {
 	var massShift = 0;
 	for (var m = 0; m < g_myWorkUnit.fixedMods.length; m++) {
-		if (g_myWorkUnit.fixedMods[m].residues.length > 1) { 
+		if (g_myWorkUnit.fixedMods[m].residues.length > 1) {
 			// just to check...
 			console.log("Fixed Mod needs looking at "
 					+ g_myWorkUnit.fixedMods[m].residues);
 		}
-		
+
 		if (g_myWorkUnit.fixedMods[m].residues === res) {
 			massShift += g_myWorkUnit.fixedMods[m].mass;
 		}
