@@ -297,6 +297,14 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	return ionSetArray;
 }
 
+function chargeMass(mass, charge)
+{
+	// Add proton
+	var chargedMass = mass + (1.007276466879 * charge);
+	
+	return chargedMass / charge;
+}
+
 function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 // modification at a time
 {
@@ -308,8 +316,7 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 	ionSet.modPos = mlocs.slice(); // initialise modpos with the array od
 	// {possloc,index,mass}
 
-	var cumulativeMass = 1.007276; // cumulative mass for b ions start with
-	// Water - OH which is H
+	var cumulativeMass = 0;
 	cumulativeMass += checkforFixedPTM('['); // is a fixed mod an amine
 	// terminus?
 	var ionObj;
@@ -326,11 +333,12 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 			}
 		}
 
-		ionObj.mass = cumulativeMass;
+		ionObj.mass = chargeMass(cumulativeMass, 1);
 		ionSet.bIons.push(ionObj);
 	}
 
-	cumulativeMass = 18.010565 + 1.007276; // start with H + water
+	// H2O
+	cumulativeMass = 15.99491461957 + 1.00782503223 + 1.00782503223;
 	cumulativeMass += checkforFixedPTM(']'); // is a fixed mod a carboxyl
 	// end?
 
@@ -345,7 +353,8 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 				ionObj.modFlag = true;
 			}
 		}
-		ionObj.mass = cumulativeMass;
+		
+		ionObj.mass = chargeMass(cumulativeMass, 1);
 		ionSet.yIons.push(ionObj);
 	}
 
