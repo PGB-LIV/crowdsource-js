@@ -297,11 +297,10 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	return ionSetArray;
 }
 
-function chargeMass(mass, charge)
-{
+function chargeMass(mass, charge) {
 	// Add proton
 	var chargedMass = mass + (1.007276466879 * charge);
-	
+
 	return chargedMass / charge;
 }
 
@@ -329,7 +328,6 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 		for (loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
 			if (b === (mlocs[loopIndex].possLoc - 1)) {
 				cumulativeMass += mlocs[loopIndex].vModMass;
-				ionObj.modFlag = true;
 			}
 		}
 
@@ -350,7 +348,6 @@ function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
 		for (loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
 			if (y === (mlocs[loopIndex].possLoc - 1)) {
 				cumulativeMass += mlocs[loopIndex].vModMass;
-				ionObj.modFlag = true;
 			}
 		}
 		

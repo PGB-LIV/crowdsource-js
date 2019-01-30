@@ -69,7 +69,6 @@ function Ion() {
 	this.match = false;
 	this.intensity = 0;
 	this.deltaM = 0;
-	this.modFlag = false;
 }
 
 /**
