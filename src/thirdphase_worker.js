@@ -1,6 +1,6 @@
 "use strict";
 /**
- * Copyright 2018 University of Liverpool
+ * Copyright 2019 University of Liverpool
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,10 +15,135 @@
  * the License.
  */
 
+function Ionset() {
+	/**
+	 * an array of ModLocs
+	 */
+	this.modPos = [];
+
+	/**
+	 * an array of Ion
+	 */
+	this.bIons = [];
+
+	/**
+	 * an array of Ion
+	 */
+	this.yIons = [];
+}
+
+function Ion() {
+	this.mass = 0;
+	this.match = false;
+	this.intensity = 0;
+	this.deltaM = 0;
+}
+
+/**
+ * used in second/third phase
+ */
+function ModLoc(ploc, modindex, modmass) {
+	/**
+	 * location on peptide
+	 */
+	this.possLoc = ploc;
+
+	/**
+	 * modification index (within Work unit Peptide description)
+	 */
+	this.modIndex = modindex;
+
+	/**
+	 * mass of this modification (convenience)
+	 */
+	this.vModMass = modmass;
+}
+
 if (typeof Math.log10 === "undefined") {
 	Object.prototype.log10 = function(n) {
 		return Math.log(n) / Math.log(10);
 	};
+}
+
+// common
+function matchSpectraWithIonSet(spectra, ionSet) {
+	// modifying
+	for (var b = 0; b < ionSet.bIons.length; b++) {
+		if (!isMassInSpectra(spectra, ionSet.bIons[b].mass)) {
+			continue;
+		}
+
+		ionSet.bIons[b].match = true;
+
+	}
+
+	for (var y = 0; y < ionSet.yIons.length; y++) {
+		if (!isMassInSpectra(spectra, ionSet.yIons[y].mass)) {
+			continue;
+		}
+
+		ionSet.yIons[y].match = true;
+	}
+
+	// we've modified it I know don't need to return it as modified by function
+	// but it makes it explicit.
+	return ionSet;
+}
+
+/**
+ * Is ion mass (mass) found in ms2 spectrum (spectra) returns zero if no match
+ * else first match intensity. also store deltaM (how close to precision window
+ * we are) common
+ */
+function isMassInSpectra(spectra, mass) {
+	var precision = (g_myWorkUnit.fragTolUnit === "ppm") ? mass * 0.000001
+			* g_myWorkUnit.fragTol : g_myWorkUnit.fragTol;
+
+	var deltaM = 0;
+	for (var m = 0; m < spectra.length; m++) {
+		deltaM = Math.abs(mass - spectra[m].mz);
+		if (deltaM <= precision) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function checkforFixedPTM(res) {
+	var massShift = 0;
+	for (var m = 0; m < g_myWorkUnit.fixedMods.length; m++) {
+		if (g_myWorkUnit.fixedMods[m].residues.length > 1) {
+			// just to check...
+			console.log("Fixed Mod needs looking at "
+					+ g_myWorkUnit.fixedMods[m].residues);
+		}
+
+		if (g_myWorkUnit.fixedMods[m].residues === res) {
+			massShift += g_myWorkUnit.fixedMods[m].mass;
+		}
+	}
+
+	return massShift;
+}
+
+function getMatchCount(ionSet) {
+	var bCount = 0;
+	var yCount = 0;
+
+	for (var b = 0; b < ionSet.bIons.length; b++) {
+		if (ionSet.bIons[b].match) {
+			bCount++;
+		}
+	}
+
+	for (var y = 0; y < ionSet.yIons.length; y++) {
+		if (ionSet.yIons[y].match) {
+			yCount++;
+		}
+	}
+
+	return bCount + yCount;
 }
 
 function doThirdPhaseSearch(myWorkUnit) {
@@ -56,7 +181,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 			// even worse now as we look for 21 twice
 		}
 
-		var subIonsets = getIonsetForAllMods(currPeptide, modLocs, totalModNum);
+		var subIonsets = getSequenceIonSets(currPeptide, modLocs, totalModNum);
 
 		// an array of ionsets to score containing num number of mods
 		// ionsets look good.
@@ -79,14 +204,15 @@ function doThirdPhaseSearch(myWorkUnit) {
 					subIonsets[s]);
 
 			// score the ionset (matched ions and ion ladders)
-			subIonMatches[s] = scoreIonset(subIonsets[s]);
+			subIonMatches[s] = getMatchCount(subIonsets[s]);
 		}
 
 		for (s = 0; s < subIonsets.length; s++) {
 			var score = 0;
 			if (subIonMatches[s] > 0) {
-				score = BinomialP(1 - ptmRsP, currPeptide.sequence.length * 2,
-						currPeptide.sequence.length * 2 - subIonMatches[s] - 1);
+				var ionCount = currPeptide.sequence.length * 2;
+				score = BinomialP(1 - ptmRsP, ionCount, ionCount
+						- subIonMatches[s] - 1);
 
 				if (score === Infinity) {
 					score = 0;
@@ -220,30 +346,21 @@ function getAllModLocs(myPeptide) {
 	return mlocs;
 }
 
-function getIonsetForAllMods(myPeptide, modlocs, num) {
-	// array ionsets to return
+function getSequenceIonSets(modifiedSequence, modlocs, num) {
 	var ionSetArray = [];
 
-	// combination array when dealing with more than one number of modifications
-	// of one type
-	var combArray = [];
-
-	// Search for none modified peptide - may well be here (Peaks PTM) and gives
-	// a basal score for peptide.
+	// Unmodified
 	if (num === 0) {
-		ionSetArray.push(getIonsFromArray3(myPeptide, [])); // single ionset
-		// returned
+		ionSetArray.push(getSequenceIons(modifiedSequence, []));
 
 		return ionSetArray;
 	}
 
-	// search for occurrence of a single modification at any of the possible
-	// possible locations
-	// the others may have fallen off. Finding a good ion match can reduce size
-	// of future search
+	// Single modification
 	if (num === 1) {
 		for (var ml = 0; ml < modlocs.length; ml++) {
-			ionSetArray.push(getIonsFromArray3(myPeptide, [ modlocs[ml] ]));
+			ionSetArray
+					.push(getSequenceIons(modifiedSequence, [ modlocs[ml] ]));
 		}
 
 		return ionSetArray;
@@ -260,14 +377,15 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 	// return ionSetArray;
 	// }
 
-	combArray = createArrayPossibleCombinations3(modlocs, modlocs.length, num); // combarray
+	var combArray = createArrayPossibleCombinations3(modlocs, modlocs.length,
+			num); // combarray
 	// now in form of [modlocs]
 
 	for (var c = 0; c < combArray.length; c++) {
 		var mlocs = combArray[c]; // mlocs = confirmed mods + combination to
 
 		var modFreq = [];
-		for (var i = 0; i < myPeptide.mods.length; i++) {
+		for (var i = 0; i < modifiedSequence.mods.length; i++) {
 			modFreq[i] = 0;
 		}
 
@@ -276,8 +394,8 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 		}
 
 		var isMatch = true;
-		for (i = 0; i < myPeptide.mods.length; i++) {
-			if (modFreq[i] != myPeptide.mods[i].num) {
+		for (i = 0; i < modifiedSequence.mods.length; i++) {
+			if (modFreq[i] != modifiedSequence.mods[i].num) {
 				isMatch = false;
 			}
 		}
@@ -289,7 +407,7 @@ function getIonsetForAllMods(myPeptide, modlocs, num) {
 		// try
 		// console.log("mlocs:"+JSON.stringify(mlocs)+" len:"+modlocs.length+"
 		// num:"+num+"conpos:"+conpos.length);
-		var ions = getIonsFromArray3(myPeptide, mlocs);
+		var ions = getSequenceIons(modifiedSequence, mlocs);
 
 		ionSetArray.push(ions);
 	}
@@ -304,56 +422,86 @@ function chargeMass(mass, charge) {
 	return chargedMass / charge;
 }
 
-function getIonsFromArray3(myPeptide, mlocs) // looking for more than one
-// modification at a time
-{
-	var ionSet = new Ionset(); // {modPos:[],bIons:[],yIons:[]}; //bIons =
-	// [{mass, match, intensity}]
-	var acid = ''; // amino acid character
-	var sequence = myPeptide.sequence; // 'ABCEF'
+function getIonsB(sequence, modificationLocations) {
+	var cumulativeMass = checkforFixedPTM('[');
 
-	ionSet.modPos = mlocs.slice(); // initialise modpos with the array od
-	// {possloc,index,mass}
-
-	var cumulativeMass = 0;
-	cumulativeMass += checkforFixedPTM('['); // is a fixed mod an amine
-	// terminus?
-	var ionObj;
-	var loopIndex;
-	for (var b = 0; b < (sequence.length); b++) {
-		ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
+	var acid;
+	var ions = [];
+	for (var b = 0; b < sequence.length - 2; b++) {
 		acid = sequence.charAt(b);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
 
-		for (loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
-			if (b === (mlocs[loopIndex].possLoc - 1)) {
-				cumulativeMass += mlocs[loopIndex].vModMass;
+		for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
+			if (b === (modificationLocations[loopIndex].possLoc - 1)) {
+				cumulativeMass += modificationLocations[loopIndex].vModMass;
 			}
 		}
 
-		ionObj.mass = chargeMass(cumulativeMass, 1);
-		ionSet.bIons.push(ionObj);
+		ions = ions.concat(getIons(cumulativeMass, modificationLocations));
 	}
 
-	// H2O
-	cumulativeMass = 15.99491461957 + 1.00782503223 + 1.00782503223;
-	cumulativeMass += checkforFixedPTM(']'); // is a fixed mod a carboxyl
-	// end?
+	return ions;
+}
 
-	for (var y = sequence.length - 1; y >= 0; y--) {
-		ionObj = new Ion(); // {mass:0,match:0,intensity:0,deltaM:0,modFlag:false};
+function getIonsY(sequence, modificationLocations) {
+	// H2O
+	var cumulativeMass = 15.99491461957 + 1.00782503223 + 1.00782503223;
+	cumulativeMass += checkforFixedPTM(']');
+
+	var acid;
+	var ions = [];
+	for (var y = sequence.length - 1; y > 0; y--) {
 		acid = sequence.charAt(y);
 		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
 
-		for (loopIndex = 0; loopIndex < mlocs.length; loopIndex++) {
-			if (y === (mlocs[loopIndex].possLoc - 1)) {
-				cumulativeMass += mlocs[loopIndex].vModMass;
+		for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
+			if (y === (modificationLocations[loopIndex].possLoc - 1)) {
+				cumulativeMass += modificationLocations[loopIndex].vModMass;
 			}
 		}
-		
-		ionObj.mass = chargeMass(cumulativeMass, 1);
-		ionSet.yIons.push(ionObj);
+
+		ions = ions.concat(getIons(cumulativeMass, modificationLocations));
 	}
+
+	return ions;
+}
+
+function getIons(cumulativeMass, modificationLocations) {
+	var ions = [];
+
+	var ionObj = new Ion();
+	ionObj.mass = chargeMass(cumulativeMass, 1);
+	ions.push(ionObj);
+
+	ionObj = new Ion();
+	ionObj.mass = chargeMass(cumulativeMass, 2);
+	ions.push(ionObj);
+
+	// Water
+	ionObj = new Ion();
+	ionObj.mass = chargeMass(cumulativeMass
+			- (1.00782503223 + 1.00782503223 + 15.99491461957), 1);
+	ions.push(ionObj);
+
+	// Amonia
+	ionObj = new Ion();
+	ionObj.mass = chargeMass(cumulativeMass
+			- (14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223),
+			1);
+	ions.push(ionObj);
+
+	return ions;
+}
+
+function getSequenceIons(modifiedSequence, mlocs) {
+	var ionSet = new Ionset();
+
+	var sequence = modifiedSequence.sequence; // 'ABCEF'
+
+	ionSet.modPos = mlocs.slice();
+
+	ionSet.bIons = getIonsB(sequence, mlocs);
+	ionSet.yIons = getIonsY(sequence, mlocs);
 
 	return ionSet;
 }
