@@ -34,15 +34,17 @@ function Ionset() {
 
 function Ion() {
 	this.mass = 0;
-	this.match = false;
+	this.baseMatch = 0;
+	this.match = 0;
 	this.intensity = 0;
 	this.deltaM = 0;
+	this.modification = 0;
 }
 
 /**
  * used in second/third phase
  */
-function ModLoc(ploc, modindex, modmass) {
+function ModLoc(ploc, modindex, modmass, id) {
 	/**
 	 * location on peptide
 	 */
@@ -57,6 +59,11 @@ function ModLoc(ploc, modindex, modmass) {
 	 * mass of this modification (convenience)
 	 */
 	this.vModMass = modmass;
+
+	/**
+	 * ID of modification
+	 */
+	this.id = id;
 }
 
 if (typeof Math.log10 === "undefined") {
@@ -67,22 +74,40 @@ if (typeof Math.log10 === "undefined") {
 
 // common
 function matchSpectraWithIonSet(spectra, ionSet) {
-	// modifying
-	for (var b = 0; b < ionSet.bIons.length; b++) {
-		if (!isMassInSpectra(spectra, ionSet.bIons[b].mass)) {
-			continue;
-		}
+	var possibleIons;
+	var ionIndex;
 
-		ionSet.bIons[b].match = true;
+	for (var b = 0; b < ionSet.bIons.length; b++) {
+		possibleIons = getIons(ionSet.bIons, b);
+
+		for (ionIndex = 0; ionIndex < possibleIons.length; ionIndex++) {
+			if (!isMassInSpectra(spectra, possibleIons[ionIndex].mass)) {
+				continue;
+			}
+
+			if (ionIndex == 0) {
+				ionSet.bIons[b].baseMatch = 1;
+			}
+
+			ionSet.bIons[b].match++;
+		}
 
 	}
 
 	for (var y = 0; y < ionSet.yIons.length; y++) {
-		if (!isMassInSpectra(spectra, ionSet.yIons[y].mass)) {
-			continue;
-		}
+		possibleIons = getIons(ionSet.yIons, y);
 
-		ionSet.yIons[y].match = true;
+		for (ionIndex = 0; ionIndex < possibleIons.length; ionIndex++) {
+			if (!isMassInSpectra(spectra, possibleIons[ionIndex].mass)) {
+				continue;
+			}
+
+			if (ionIndex == 0) {
+				ionSet.yIons[y].baseMatch = 1;
+			}
+
+			ionSet.yIons[y].match++;
+		}
 	}
 
 	// we've modified it I know don't need to return it as modified by function
@@ -129,18 +154,31 @@ function checkforFixedPTM(res) {
 
 function getMatchCount(ionSet) {
 	var bCount = 0;
-	var yCount = 0;
-
 	for (var b = 0; b < ionSet.bIons.length; b++) {
-		if (ionSet.bIons[b].match) {
+		if (ionSet.bIons[b].match > 0) {
 			bCount++;
 		}
 	}
 
+	var yCount = 0;
 	for (var y = 0; y < ionSet.yIons.length; y++) {
-		if (ionSet.yIons[y].match) {
+		if (ionSet.yIons[y].match > 0) {
 			yCount++;
 		}
+	}
+
+	return bCount + yCount;
+}
+
+function getMatchSum(ionSet) {
+	var bCount = 0;
+	for (var b = 0; b < ionSet.bIons.length; b++) {
+		bCount += ionSet.bIons[b].match;
+	}
+
+	var yCount = 0;
+	for (var y = 0; y < ionSet.yIons.length; y++) {
+		yCount += ionSet.yIons[y].match;
 	}
 
 	return bCount + yCount;
@@ -159,6 +197,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 		var currScoreObj = {
 			modPos : [],
 			ionsMatched : 0,
+			ionsMatchSum : 0,
 			score : 0
 		};
 
@@ -221,14 +260,29 @@ function doThirdPhaseSearch(myWorkUnit) {
 				}
 			}
 
+			//if (currPeptide.sequence == "SSPVESLKK") {
+			//	console.log(subIonsets[s].modPos[0].possLoc);
+			//	console.log(score);
+			//	console.log(subIonMatches[s]);
+			//	console.log(subIonsets[s]);
+			//}
+
 			// Select best candidate
-			if (score >= currScoreObj.score) {
+			if (score > currScoreObj.score
+					|| (score == currScoreObj.score && getMatchSum(subIonsets[s]) >= currScoreObj.ionsMatchSum)) {
 				currScoreObj.score = score;
 				currScoreObj.modPos = subIonsets[s].modPos.slice();
 				// place modPos structure [ModLoc] is kept with score
 				currScoreObj.ionsMatched = subIonMatches[s];
+				currScoreObj.ionsMatchSum = getMatchSum(subIonsets[s]);
 			}
 		}
+
+		//if (currPeptide.sequence == "SSPVESLKK") {
+		//	console.log(myWorkUnit.fragments);
+		//	console.log(currScoreObj);
+		//	throw new Error();
+		//}
 
 		// currScoreObj = best score, ion-match and modPos of this best score
 		resObj.S = Math.round(currScoreObj.score * 100000) / 100000;
@@ -333,7 +387,8 @@ function getAllModLocs(myPeptide) {
 				myPeptide.mods[mod].residues);
 
 		for (var i = 0; i < possLocs.length; i++) {
-			var modObj = new ModLoc(possLocs[i], mod, myPeptide.mods[mod].mass);
+			var modObj = new ModLoc(possLocs[i], mod, myPeptide.mods[mod].mass,
+					myPeptide.mods[mod].id);
 			mlocs.push(modObj);
 		}
 	}
@@ -423,21 +478,24 @@ function chargeMass(mass, charge) {
 }
 
 function getIonsB(sequence, modificationLocations) {
-	var cumulativeMass = checkforFixedPTM('[');
+	var neutralMass = checkforFixedPTM('[');
 
 	var acid;
 	var ions = [];
-	for (var b = 0; b < sequence.length - 2; b++) {
+	for (var b = 0; b < sequence.length - 1; b++) {
+		var ionObj = new Ion();
 		acid = sequence.charAt(b);
-		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
+		neutralMass += g_AAmass[acid] + checkforFixedPTM(acid);
 
 		for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
 			if (b === (modificationLocations[loopIndex].possLoc - 1)) {
-				cumulativeMass += modificationLocations[loopIndex].vModMass;
+				neutralMass += modificationLocations[loopIndex].vModMass;
+				ionObj.modification = modificationLocations[loopIndex].id;
 			}
 		}
 
-		ions = ions.concat(getIons(cumulativeMass, modificationLocations));
+		ionObj.mass = neutralMass;
+		ions.push(ionObj);
 	}
 
 	return ions;
@@ -445,50 +503,69 @@ function getIonsB(sequence, modificationLocations) {
 
 function getIonsY(sequence, modificationLocations) {
 	// H2O
-	var cumulativeMass = 15.99491461957 + 1.00782503223 + 1.00782503223;
-	cumulativeMass += checkforFixedPTM(']');
+	var neutralMass = 15.99491461957 + 1.00782503223 + 1.00782503223;
+	neutralMass += checkforFixedPTM(']');
 
 	var acid;
 	var ions = [];
 	for (var y = sequence.length - 1; y > 0; y--) {
+		var ionObj = new Ion();
 		acid = sequence.charAt(y);
-		cumulativeMass += g_AAmass[acid] + checkforFixedPTM(acid);
+		neutralMass += g_AAmass[acid] + checkforFixedPTM(acid);
 
 		for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
 			if (y === (modificationLocations[loopIndex].possLoc - 1)) {
-				cumulativeMass += modificationLocations[loopIndex].vModMass;
+				neutralMass += modificationLocations[loopIndex].vModMass;
+				ionObj.modification = modificationLocations[loopIndex].id;
 			}
 		}
 
-		ions = ions.concat(getIons(cumulativeMass, modificationLocations));
+		ionObj.mass = neutralMass;
+		ions.push(ionObj);
 	}
 
 	return ions;
 }
 
-function getIons(cumulativeMass, modificationLocations) {
+function getIons(ionSet, index) {
+	var neutralIon = ionSet[index];
 	var ions = [];
 
-	var ionObj = new Ion();
-	ionObj.mass = chargeMass(cumulativeMass, 1);
-	ions.push(ionObj);
+	// Only phos currently supported
+	var hasPhos = false;
+	for (var i = 0; i <= index; i++) {
+		if (ionSet[i].modification == 21) {
+			hasPhos = true;
+			break;
+		}
+	}
 
-	ionObj = new Ion();
-	ionObj.mass = chargeMass(cumulativeMass, 2);
-	ions.push(ionObj);
+	var ionObj;
+	for (var charge = 1; charge <= 3; charge++) {
+		ionObj = new Ion();
+		ionObj.mass = chargeMass(neutralIon.mass, charge);
+		ions.push(ionObj);
 
-	// Water
-	ionObj = new Ion();
-	ionObj.mass = chargeMass(cumulativeMass
-			- (1.00782503223 + 1.00782503223 + 15.99491461957), 1);
-	ions.push(ionObj);
+		// Water
+		ionObj = new Ion();
+		ionObj.mass = chargeMass(neutralIon.mass
+				- (1.00782503223 + 1.00782503223 + 15.99491461957), charge);
+		ions.push(ionObj);
 
-	// Amonia
-	ionObj = new Ion();
-	ionObj.mass = chargeMass(cumulativeMass
-			- (14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223),
-			1);
-	ions.push(ionObj);
+		// Amonia
+		ionObj = new Ion();
+		ionObj.mass = chargeMass(
+				neutralIon.mass
+						- (14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223),
+				charge);
+		ions.push(ionObj);
+
+		if (hasPhos) {
+			ionObj = new Ion();
+			ionObj.mass = chargeMass(neutralIon.mass - 97.976896, charge);
+			ions.push(ionObj);
+		}
+	}
 
 	return ions;
 }
