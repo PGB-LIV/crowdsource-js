@@ -269,7 +269,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 
 			// Select best candidate
 			if (score > currScoreObj.score
-					|| (score == currScoreObj.score && getMatchSum(subIonsets[s]) >= currScoreObj.ionsMatchSum)) {
+					|| (score === currScoreObj.score && getMatchSum(subIonsets[s]) >= currScoreObj.ionsMatchSum)) {
 				currScoreObj.score = score;
 				currScoreObj.modPos = subIonsets[s].modPos.slice();
 				// place modPos structure [ModLoc] is kept with score
@@ -450,7 +450,7 @@ function getSequenceIonSets(modifiedSequence, modlocs, num) {
 
 		var isMatch = true;
 		for (i = 0; i < modifiedSequence.mods.length; i++) {
-			if (modFreq[i] != modifiedSequence.mods[i].num) {
+			if (modFreq[i] !== modifiedSequence.mods[i].num) {
 				isMatch = false;
 			}
 		}
@@ -534,7 +534,7 @@ function getIons(ionSet, index) {
 	// Only phos currently supported
 	var hasPhos = false;
 	for (var i = 0; i <= index; i++) {
-		if (ionSet[i].modification == 21) {
+		if (ionSet[i].modification === 21) {
 			hasPhos = true;
 			break;
 		}
