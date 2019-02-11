@@ -15,6 +15,9 @@
  * the License.
  */
 
+var H2O_MASS = 1.00782503223 + 1.00782503223 + 15.99491461957;
+var NH3_MASS = 14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223;
+
 function Ionset() {
 	/**
 	 * an array of ModLocs
@@ -73,12 +76,17 @@ if (typeof Math.log10 === "undefined") {
 }
 
 // common
-function matchSpectraWithIonSet(spectra, ionSet, sequence) {
+function matchSpectraWithIonSet(spectra, ionSet, sequence, maxCharge) {
 	var possibleIons;
 	var ionIndex;
+	var losses = [];
+	var neutralIon;
 
 	for (var b = 0; b < ionSet.bIons.length; b++) {
-		possibleIons = getIons(sequence, ionSet.bIons, b);
+		neutralIon = ionSet.bIons[b];
+
+		updateLosses(losses, neutralIon, sequence.charAt(b));
+		possibleIons = getIons(neutralIon, maxCharge, losses);
 
 		for (ionIndex = 0; ionIndex < possibleIons.length; ionIndex++) {
 			if (!isMassInSpectra(spectra, possibleIons[ionIndex].mass)) {
@@ -94,8 +102,12 @@ function matchSpectraWithIonSet(spectra, ionSet, sequence) {
 
 	}
 
+	losses = [];
 	for (var y = 0; y < ionSet.yIons.length; y++) {
-		possibleIons = getIons(sequence, ionSet.yIons, y);
+		neutralIon = ionSet.yIons[y];
+
+		updateLosses(losses, neutralIon, sequence.charAt(y));
+		possibleIons = getIons(neutralIon, maxCharge, losses);
 
 		for (ionIndex = 0; ionIndex < possibleIons.length; ionIndex++) {
 			if (!isMassInSpectra(spectra, possibleIons[ionIndex].mass)) {
@@ -113,6 +125,22 @@ function matchSpectraWithIonSet(spectra, ionSet, sequence) {
 	// we've modified it I know don't need to return it as modified by function
 	// but it makes it explicit.
 	return ionSet;
+}
+
+function updateLosses(losses, neutralIon, residue) {
+	if (neutralIon.modification === 21) {
+		losses['Phos'] = true;
+	}
+
+	if (losses['H2O'] !== true
+			&& (residue === 'S' || residue === 'T' || residue === 'E' || residue === 'D')) {
+		losses['H2O'] = true;
+	}
+
+	if (losses['NH3'] !== true
+			&& (residue === 'R' || residue === 'K' || residue === 'N' || residue === 'Q')) {
+		losses['NH3'] = true;
+	}
 }
 
 /**
@@ -244,7 +272,7 @@ function doThirdPhaseSearch(myWorkUnit) {
 		for (var s = 0; s < subIonsets.length; s++) {
 			// for each ionset we log matches with ms2 fragments
 			subIonsets[s] = matchSpectraWithIonSet(myWorkUnit.fragments,
-					subIonsets[s], currPeptide.sequence);
+					subIonsets[s], currPeptide.sequence, myWorkUnit.z);
 
 			// score the ionset (matched ions and ion ladders)
 			subIonMatches[s] = getMatchCount(subIonsets[s]);
@@ -507,7 +535,7 @@ function getIonsB(sequence, modificationLocations) {
 
 function getIonsY(sequence, modificationLocations) {
 	// H2O
-	var neutralMass = 15.99491461957 + 1.00782503223 + 1.00782503223;
+	var neutralMass = H2O_MASS;
 	neutralMass += checkforFixedPTM(']');
 
 	var acid;
@@ -531,57 +559,30 @@ function getIonsY(sequence, modificationLocations) {
 	return ions;
 }
 
-function getIons(sequence, ionSet, index) {
-	var neutralIon = ionSet[index];
+function getIons(neutralIon, maxCharge, losses) {
 	var ions = [];
-
-	// Only phos currently supported
-	var hasPhos = false;
-	var hasWaterLoss = false;
-	var hasAmoniaLoss = false;
-	for (var i = 0; i <= index; i++) {
-		if (ionSet[i].modification === 21) {
-			hasPhos = true;
-		}
-
-		var residue = sequence.charAt(i);
-		if (residue === 'S' || residue === 'T' || residue === 'E'
-				|| residue === 'D') {
-			hasWaterLoss = true;
-		}
-
-		if (residue === 'R' || residue === 'K' || residue === 'N'
-				|| residue === 'Q') {
-			hasAmoniaLoss = true;
-		}
-	}
-
 	var ionObj;
-	for (var charge = 1; charge <= 2; charge++) {
+	for (var charge = 1; charge <= maxCharge; charge++) {
 		ionObj = new Ion();
 		ionObj.mass = chargeMass(neutralIon.mass, charge);
 		ionObj.baseMatch = 1;
 		ions.push(ionObj);
 
 		// Water
-		if (hasWaterLoss) {
+		if (losses['H2O'] === true) {
 			ionObj = new Ion();
-			ionObj.mass = chargeMass(neutralIon.mass
-					- (1.00782503223 + 1.00782503223 + 15.99491461957), charge);
+			ionObj.mass = chargeMass(neutralIon.mass - H2O_MASS, charge);
 			ions.push(ionObj);
 		}
 
 		// Amonia
-		if (hasAmoniaLoss) {
+		if (losses['NH3'] === true) {
 			ionObj = new Ion();
-			ionObj.mass = chargeMass(
-					neutralIon.mass
-							- (14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223),
-					charge);
+			ionObj.mass = chargeMass(neutralIon.mass - NH3_MASS, charge);
 			ions.push(ionObj);
 		}
 
-		if (hasPhos) {
+		if (losses['Phos'] === true) {
 			ionObj = new Ion();
 			ionObj.mass = chargeMass(neutralIon.mass - 97.976896, charge);
 			ions.push(ionObj);
@@ -594,7 +595,7 @@ function getIons(sequence, ionSet, index) {
 function getSequenceIons(modifiedSequence, mlocs) {
 	var ionSet = new Ionset();
 
-	var sequence = modifiedSequence.sequence; // 'ABCEF'
+	var sequence = modifiedSequence.sequence;
 
 	ionSet.modPos = mlocs.slice();
 
