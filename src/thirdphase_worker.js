@@ -113,8 +113,9 @@ function MsSearch(data) {
 			var ptmRsP = ptmRsN * ptmRsD / ptmRsW;
 			for (var s = 0; s < subIonsets.length; s++) {
 				// for each ionset we log matches with ms2 fragments
-				subIonsets[s] = this.matchSpectraWithIonSet(this.workUnit.fragments,
-						subIonsets[s], currPeptide.sequence, this.workUnit.z);
+				subIonsets[s] = this.matchSpectraWithIonSet(
+						this.workUnit.fragments, subIonsets[s],
+						currPeptide.sequence, this.workUnit.z);
 
 				// score the ionset (matched ions and ion ladders)
 				subIonMatches[s] = this.getMatchCount(subIonsets[s]);
@@ -130,13 +131,14 @@ function MsSearch(data) {
 					if (score === Infinity) {
 						score = 0;
 					} else {
-						score = -10 * Math.log10(score)
+						score = -10 * Math.log10(score);
 					}
 				}
 
 				// Select best candidate
 				if (score > currScoreObj.score
-						|| (score === currScoreObj.score && this.getMatchSum(subIonsets[s]) >= currScoreObj.ionsMatchSum)) {
+						|| (score === currScoreObj.score && this
+								.getMatchSum(subIonsets[s]) >= currScoreObj.ionsMatchSum)) {
 					currScoreObj.score = score;
 					currScoreObj.modPos = subIonsets[s].modPos.slice();
 					// place modPos structure [ModLoc] is kept with score
@@ -196,7 +198,7 @@ function MsSearch(data) {
 		}
 
 		sendResult(resultObject);
-	}
+	};
 
 	// common
 	this.matchSpectraWithIonSet = function(spectra, ionSet, sequence, maxCharge) {
@@ -249,23 +251,23 @@ function MsSearch(data) {
 		// function
 		// but it makes it explicit.
 		return ionSet;
-	}
+	};
 
 	this.updateLosses = function(losses, neutralIon, residue) {
 		if (neutralIon.modification === 21) {
-			losses['Phos'] = true;
+			losses.Phos = true;
 		}
 
-		if (losses['H2O'] !== true
+		if (losses.H2O !== true
 				&& (residue === 'S' || residue === 'T' || residue === 'E' || residue === 'D')) {
-			losses['H2O'] = true;
+			losses.H2O = true;
 		}
 
-		if (losses['NH3'] !== true
+		if (losses.NH3 !== true
 				&& (residue === 'R' || residue === 'K' || residue === 'N' || residue === 'Q')) {
-			losses['NH3'] = true;
+			losses.NH3 = true;
 		}
-	}
+	};
 
 	/**
 	 * Is ion mass (mass) found in ms2 spectrum (spectra) returns zero if no
@@ -285,7 +287,7 @@ function MsSearch(data) {
 		}
 
 		return false;
-	}
+	};
 
 	this.checkforFixedPTM = function(res) {
 		var massShift = 0;
@@ -310,7 +312,7 @@ function MsSearch(data) {
 			if (ionSet.bIons[b].baseMatch > 0) {
 				bCount++;
 			} else if (ionSet.bIons[b].match > 0) {
-				bCount += .75;
+				bCount += 0.75;
 			}
 		}
 
@@ -319,12 +321,12 @@ function MsSearch(data) {
 			if (ionSet.yIons[y].baseMatch > 0) {
 				yCount++;
 			} else if (ionSet.yIons[y].match > 0) {
-				yCount += .75;
+				yCount += 0.75;
 			}
 		}
 
 		return bCount + yCount;
-	}
+	};
 
 	this.getMatchSum = function(ionSet) {
 		var bCount = 0;
@@ -338,7 +340,7 @@ function MsSearch(data) {
 		}
 
 		return bCount + yCount;
-	}
+	};
 
 	/**
 	 * Gets the total modifiable sites from the modification list
@@ -354,7 +356,7 @@ function MsSearch(data) {
 		}
 
 		return mnum;
-	}
+	};
 
 	this.getInitialResObj = function(myPeptide) {
 		var resObj = {
@@ -379,7 +381,7 @@ function MsSearch(data) {
 		}
 
 		return resObj;
-	}
+	};
 
 	this.getAllModLocs = function(myPeptide) {
 		var mlocs = [];
@@ -388,8 +390,8 @@ function MsSearch(data) {
 		}
 
 		for (var mod = 0; mod < myPeptide.mods.length; mod++) {
-			var possLocs = this.createIndexofPossibleLocations3(myPeptide.sequence,
-					myPeptide.mods[mod].residues);
+			var possLocs = this.createIndexofPossibleLocations3(
+					myPeptide.sequence, myPeptide.mods[mod].residues);
 
 			for (var i = 0; i < possLocs.length; i++) {
 				var modObj = new ModLoc(possLocs[i], mod,
@@ -404,7 +406,7 @@ function MsSearch(data) {
 		});
 
 		return mlocs;
-	}
+	};
 
 	this.getSequenceIonSets = function(modifiedSequence, modlocs, num) {
 		var ionSetArray = [];
@@ -476,14 +478,14 @@ function MsSearch(data) {
 		}
 
 		return ionSetArray;
-	}
+	};
 
 	this.getChargedMass = function(mass, charge) {
 		// Add proton
 		var chargedMass = mass + (1.007276466879 * charge);
 
 		return chargedMass / charge;
-	}
+	};
 
 	this.getIonsB = function(sequence, modificationLocations) {
 		var neutralMass = this.checkforFixedPTM('[');
@@ -507,7 +509,7 @@ function MsSearch(data) {
 		}
 
 		return ions;
-	}
+	};
 
 	this.getIonsY = function(sequence, modificationLocations) {
 		// H2O
@@ -533,7 +535,7 @@ function MsSearch(data) {
 		}
 
 		return ions;
-	}
+	};
 
 	this.getIons = function(neutralIon, maxCharge, losses) {
 		var ions = [];
@@ -545,28 +547,31 @@ function MsSearch(data) {
 			ions.push(ionObj);
 
 			// Water
-			if (losses['H2O'] === true) {
+			if (losses.H2O === true) {
 				ionObj = new Ion();
-				ionObj.mass = this.getChargedMass(neutralIon.mass - H2O_MASS, charge);
+				ionObj.mass = this.getChargedMass(neutralIon.mass - H2O_MASS,
+						charge);
 				ions.push(ionObj);
 			}
 
 			// Amonia
-			if (losses['NH3'] === true) {
+			if (losses.NH3 === true) {
 				ionObj = new Ion();
-				ionObj.mass = this.getChargedMass(neutralIon.mass - NH3_MASS, charge);
+				ionObj.mass = this.getChargedMass(neutralIon.mass - NH3_MASS,
+						charge);
 				ions.push(ionObj);
 			}
 
-			if (losses['Phos'] === true) {
+			if (losses.Phos === true) {
 				ionObj = new Ion();
-				ionObj.mass = this.getChargedMass(neutralIon.mass - 97.976896, charge);
+				ionObj.mass = this.getChargedMass(neutralIon.mass - 97.976896,
+						charge);
 				ions.push(ionObj);
 			}
 		}
 
 		return ions;
-	}
+	};
 
 	this.getSequenceIons = function(modifiedSequence, mlocs) {
 		var ionSet = new Ionset();
@@ -579,7 +584,7 @@ function MsSearch(data) {
 		ionSet.yIons = this.getIonsY(sequence, mlocs);
 
 		return ionSet;
-	}
+	};
 
 	// returns integer array of all possible locations of mod +1
 	// NB position = sequence position + 1 ... 0 = '[' 1 to len = = to len-1 and
@@ -609,7 +614,7 @@ function MsSearch(data) {
 		}
 
 		return posloc;
-	}
+	};
 
 	// -----------------------------------------------------------------------------
 	// Combination & Factorial code
@@ -671,7 +676,7 @@ function MsSearch(data) {
 		}
 
 		return retObj;
-	}
+	};
 
 	this.getCombinations = function(n, k) {
 		var nfac = getFactorial(n);
@@ -679,7 +684,7 @@ function MsSearch(data) {
 		var nsubkfac = getFactorial(n - k);
 
 		return nfac / (kfac * nsubkfac);
-	}
+	};
 
 	this.getFactorial = function(f) {
 		var r = 1;
@@ -688,7 +693,7 @@ function MsSearch(data) {
 		}
 
 		return r;
-	}
+	};
 
 	// SRC: http://www.ciphersbyritter.com/JAVASCRP/BINOMPOI.HTM
 	this.BinomialP = function(p, n, k) {
@@ -710,7 +715,7 @@ function MsSearch(data) {
 		}
 
 		return r;
-	}
+	};
 }
 
 function Ionset() {
