@@ -304,7 +304,7 @@ function MsSearch(data) {
 		}
 
 		return massShift;
-	}
+	};
 
 	this.getMatchCount = function(ionSet) {
 		var bCount = 0;
