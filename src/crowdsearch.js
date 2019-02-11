@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Copyright 2016 University of Liverpool
+ * Copyright 2019 University of Liverpool
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -48,7 +48,6 @@ function initialiseWorker() {
 	myWorker = BuildWorker(function() {
 		// will need to go to master
 		var SCRIPT_URL = "http://pgb.liv.ac.uk/~andrew/crowdsource-js/src/";
-		importScripts(SCRIPT_URL + "cs_worker.js");
 		importScripts(SCRIPT_URL + "thirdphase_worker.js");
 	});
 
@@ -68,13 +67,10 @@ $(window).on("beforeunload", function() {
 
 console.info("WebWorker " + typeof (window.Worker));
 
-if (typeof (Worker) === "undefined" || typeof (DEV_JOB) !== "undefined") {
-	$.ajax({
-		url : SCRIPT_URL + 'cs_worker.js',
-		dataType : 'script',
-		async : false
-	});
+var isWorkerAvailable = typeof (Worker) === undefined;
+console.info("WebWorker " + isWorkerAvailable);
 
+if (isWorkerAvailable || typeof (DEV_JOB) !== "undefined") {
 	$.ajax({
 		url : SCRIPT_URL + 'thirdphase_worker.js',
 		dataType : 'script',
@@ -116,6 +112,7 @@ function receiveWorkUnit(json) {
 }
 
 function sendResult(resultObject) {
+	console.log("Processed in: " + resultObject.processTime);
 	var resultString = JSON.stringify(resultObject);
 
 	if (typeof (DEV_JOB) !== "undefined") {
