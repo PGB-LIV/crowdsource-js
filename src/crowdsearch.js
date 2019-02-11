@@ -48,7 +48,7 @@ function initialiseWorker() {
 	myWorker = BuildWorker(function() {
 		// will need to go to master
 		var SCRIPT_URL = "http://pgb.liv.ac.uk/~andrew/crowdsource-js/src/";
-		importScripts(SCRIPT_URL + "thirdphase_worker.js");
+		importScripts(SCRIPT_URL + "MsSearch.js");
 	});
 
 	// worker communicates with the main js via JSON strings
@@ -72,7 +72,7 @@ console.info("WebWorker " + isWorkerAvailable);
 
 if (isWorkerAvailable || typeof (DEV_JOB) !== "undefined") {
 	$.ajax({
-		url : SCRIPT_URL + 'thirdphase_worker.js',
+		url : SCRIPT_URL + 'MsSearch.js',
 		dataType : 'script',
 		async : false
 	});
@@ -104,7 +104,8 @@ function requestWorkUnit() {
 
 function receiveWorkUnit(json) {
 	if (myWorker === undefined) {
-		doSearch(json);
+		var search = new MsSearch(json);
+		search.search();
 		return;
 	}
 
