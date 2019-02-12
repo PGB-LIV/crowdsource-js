@@ -14,34 +14,6 @@
  * the License.
  */
 
-var H2O_MASS = 1.00782503223 + 1.00782503223 + 15.99491461957;
-var NH3_MASS = 14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223;
-
-var g_AAmass = {
-	A : 71.037114,
-	R : 156.101111,
-	N : 114.042927,
-	D : 115.026943,
-	C : 103.009185,
-	E : 129.042593,
-	Q : 128.058578,
-	G : 57.021464,
-	H : 137.058912,
-	I : 113.084064,
-	L : 113.084064,
-	K : 128.094963,
-	M : 131.040485,
-	F : 147.068414,
-	P : 97.052764,
-	S : 87.032028,
-	T : 101.047679,
-	U : 150.95363,
-	W : 186.079313,
-	Y : 163.063329,
-	V : 99.068414,
-	X : 0
-};
-
 /**
  * Web Worker
  */
@@ -53,6 +25,33 @@ this.onmessage = function(event) {
 
 function MsSearch(data) {
 	"use strict";
+
+	var H2O_MASS = 1.00782503223 + 1.00782503223 + 15.99491461957;
+	var NH3_MASS = 14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223;
+	var AA_MASS = {
+		A : 71.0371137852,
+		R : 156.1011110241,
+		N : 114.0429274414,
+		D : 115.0269430243,
+		C : 103.0091849596,
+		E : 129.0425930888,
+		Q : 128.0585775058,
+		G : 57.0214637207,
+		H : 137.0589118585,
+		I : 113.0840639785,
+		L : 113.0840639785,
+		K : 128.0949630152,
+		M : 131.0404850885,
+		F : 147.0684139141,
+		P : 97.0527638496,
+		S : 87.0320284047,
+		T : 101.0476784692,
+		W : 186.0793129507,
+		Y : 163.0633285336,
+		V : 99.0684139141,
+		U : 150.9536355852
+	};
+	
 	this.workUnit = data;
 
 	this.search = function() {
@@ -495,7 +494,7 @@ function MsSearch(data) {
 		for (var b = 0; b < sequence.length - 1; b++) {
 			var ionObj = new Ion();
 			acid = sequence.charAt(b);
-			neutralMass += g_AAmass[acid] + this.checkforFixedPTM(acid);
+			neutralMass += AA_MASS[acid] + this.checkforFixedPTM(acid);
 
 			for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
 				if (b === (modificationLocations[loopIndex].possLoc - 1)) {
@@ -521,7 +520,7 @@ function MsSearch(data) {
 		for (var y = sequence.length - 1; y > 0; y--) {
 			var ionObj = new Ion();
 			acid = sequence.charAt(y);
-			neutralMass += g_AAmass[acid] + this.checkforFixedPTM(acid);
+			neutralMass += AA_MASS[acid] + this.checkforFixedPTM(acid);
 
 			for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
 				if (y === (modificationLocations[loopIndex].possLoc - 1)) {
