@@ -55,6 +55,16 @@ function MsSearch(data) {
 
 	this.workUnit = data;
 
+	if (this.workUnit.fragTolUnit === "ppm") {
+		this.getTolerance = function(mass) {
+			return mass * 0.000001 * this.workUnit.fragTol;
+		};
+	} else {
+		this.getTolerance = function(mass) {
+			return this.workUnit.fragTol;
+		};
+	}
+
 	this.search = function() {
 		// made up of {peptide id, ionsmatched, score, mods:[{ id,position[] }]}
 		var searchStart = Date.now();
@@ -101,17 +111,7 @@ function MsSearch(data) {
 			// ionsets look good.
 			var subIonMatches = [];
 
-			var ptmRsN = this.workUnit.fragments.length;
-			var ptmRsD = 0.5;
-			var ptmRsW = 0;
-			for (var fragId = 0; fragId < ptmRsN; fragId++) {
-				ptmRsW = Math.max(ptmRsW, this.workUnit.fragments[fragId].mz);
-			}
-
-			// TODO: Remove hard coded window size
-			ptmRsW = Math.ceil(ptmRsW / 100) * 100;
-
-			var ptmRsP = ptmRsN * ptmRsD / ptmRsW;
+			var ptmRsP = this.getFactorP(this.workUnit.fragments);
 			for (var s = 0; s < subIonsets.length; s++) {
 				// for each ionset we log matches with ms2 fragments
 				subIonsets[s] = this.matchSpectraWithIonSets(spectra,
@@ -128,11 +128,7 @@ function MsSearch(data) {
 					score = this.BinomialP(1 - ptmRsP, ionCount, ionCount
 							- subIonMatches[s] - 1);
 
-					if (score === Infinity) {
-						score = 0;
-					} else {
-						score = -10 * Math.log10(score);
-					}
+					score = score === Infinity ? 0 : -10 * Math.log10(score);
 				}
 
 				// Select best candidate
@@ -188,16 +184,10 @@ function MsSearch(data) {
 		};
 
 		for (var r = 0; r < this.workUnit.peptides.length; r++) {
-			resultObject.peptides.push(allPeptideScores[r]);
+			resultObject.peptides[r] = allPeptideScores[r];
 		}
 
-		if (typeof WorkerGlobalScope !== 'undefined'
-				&& self instanceof WorkerGlobalScope) {
-			postMessage(resultObject);
-			return;
-		}
-
-		sendResult(resultObject);
+		return resultObject;
 	};
 
 	// common
@@ -267,31 +257,33 @@ function MsSearch(data) {
 	 */
 	this.isMassInSpectra = function(spectra, mass) {
 		var id = Math.floor(mass);
-
 		var precision = this.getTolerance(mass);
 
-		var deltaM = 0;
-		for (var i = id - 1; i <= id + 1; i++) {
-			if (typeof spectra[i] === 'undefined') {
-				continue;
-			}
-
-			for (var m = 0; m < spectra[i].length; m++) {
-				deltaM = Math.abs(mass - spectra[i][m].mz);
-
-				if (deltaM < precision) {
-					return true;
-				}
-			}
-
+		if (typeof spectra[id] !== 'undefined'
+				&& this.isMassInSpectraWindow(spectra[id], mass, precision)) {
+			return true;
+		} else if (typeof spectra[id - 1] !== 'undefined'
+				&& this.isMassInSpectraWindow(spectra[id - 1], mass, precision)) {
+			return true;
+		} else if (typeof spectra[id + 1] !== 'undefined'
+				&& this.isMassInSpectraWindow(spectra[id + 1], mass, precision)) {
+			return true;
 		}
 
 		return false;
 	};
 
-	this.getTolerance = function(mass) {
-		return (this.workUnit.fragTolUnit === "ppm") ? mass * 0.000001
-				* this.workUnit.fragTol : this.workUnit.fragTol;
+	this.isMassInSpectraWindow = function(spectra, mass, precision) {
+		var deltaM = 0;
+		for (var m = 0; m < spectra.length; m++) {
+			deltaM = Math.abs(mass - spectra[m].mz);
+
+			if (deltaM < precision) {
+				return true;
+			}
+		}
+
+		return false;
 	};
 
 	this.checkforFixedPTM = function(res) {
@@ -381,7 +373,7 @@ function MsSearch(data) {
 				P : []
 			};
 
-			resObj.mods.push(modp);
+			resObj.mods[mod] = modp;
 			// flush out resObj.mods[]
 		}
 
@@ -497,8 +489,9 @@ function MsSearch(data) {
 
 		var acid;
 		var ions = [];
+		var ionObj;
 		for (var b = 0; b < sequence.length - 1; b++) {
-			var ionObj = new Ion();
+			ionObj = new Ion();
 			acid = sequence.charAt(b);
 			neutralMass += AA_MASS[acid] + this.checkforFixedPTM(acid);
 
@@ -517,14 +510,13 @@ function MsSearch(data) {
 	};
 
 	this.getIonsY = function(sequence, modificationLocations) {
-		// H2O
-		var neutralMass = H2O_MASS;
-		neutralMass += this.checkforFixedPTM(']');
+		var neutralMass = H2O_MASS + this.checkforFixedPTM(']');
 
 		var acid;
 		var ions = [];
+		var ionObj;
 		for (var y = sequence.length - 1; y > 0; y--) {
-			var ionObj = new Ion();
+			ionObj = new Ion();
 			acid = sequence.charAt(y);
 			neutralMass += AA_MASS[acid] + this.checkforFixedPTM(acid);
 
@@ -581,25 +573,27 @@ function MsSearch(data) {
 	this.getSequenceIons = function(modifiedSequence, mlocs) {
 		var ionSet = new Ionset();
 
-		var sequence = modifiedSequence.sequence;
-
 		ionSet.modPos = mlocs.slice();
-
-		ionSet.bIons = this.getIonsB(sequence, mlocs);
-		ionSet.yIons = this.getIonsY(sequence, mlocs);
+		ionSet.bIons = this.getIonsB(modifiedSequence.sequence, mlocs);
+		ionSet.yIons = this.getIonsY(modifiedSequence.sequence, mlocs);
 
 		return ionSet;
 	};
 
 	this.indexSpectra = function(fragments) {
 		var spectra = [];
-
+		var key;
 		for (var i = 0; i < fragments.length; i++) {
-			spectra[Math.floor(fragments[i].mz)] = fragments[i];
+			key = Math.floor(fragments[i].mz);
+			if (typeof spectra[key] === 'undefined') {
+				spectra[key] = [];
+			}
+
+			spectra[key].push(fragments[i]);
 		}
 
 		return spectra;
-	}
+	};
 
 	// returns integer array of all possible locations of mod +1
 	// NB position = sequence position + 1 ... 0 = '[' 1 to len = = to len-1 and
@@ -730,6 +724,20 @@ function MsSearch(data) {
 		}
 
 		return r;
+	};
+
+	this.getFactorP = function(fragments) {
+		var ptmRsN = fragments.length;
+		var ptmRsD = 0.5;
+		var ptmRsW = 0;
+		for (var fragId = 0; fragId < ptmRsN; fragId++) {
+			ptmRsW = Math.max(ptmRsW, fragments[fragId].mz);
+		}
+
+		// TODO: Remove hard coded window size
+		ptmRsW = Math.ceil(ptmRsW / 100) * 100;
+
+		return ptmRsN * ptmRsD / ptmRsW;
 	};
 }
 
