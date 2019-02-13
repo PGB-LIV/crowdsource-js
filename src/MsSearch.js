@@ -28,6 +28,7 @@ function MsSearch(data) {
 
 	var H2O_MASS = 1.00782503223 + 1.00782503223 + 15.99491461957;
 	var NH3_MASS = 14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223;
+	var PHOS_LOSS_MASS = 97.97689557339;
 	var AA_MASS = {
 		A : 71.0371137852,
 		R : 156.1011110241,
@@ -51,13 +52,14 @@ function MsSearch(data) {
 		V : 99.0684139141,
 		U : 150.9536355852
 	};
-	
+
 	this.workUnit = data;
 
 	this.search = function() {
 		// made up of {peptide id, ionsmatched, score, mods:[{ id,position[] }]}
 		var searchStart = Date.now();
 		var allPeptideScores = [];
+		var spectra = this.indexSpectra(this.workUnit.fragments);
 
 		for (var peptideIndex = 0; peptideIndex < this.workUnit.peptides.length; peptideIndex++) {
 			var currPeptide = this.workUnit.peptides[peptideIndex];
@@ -112,9 +114,8 @@ function MsSearch(data) {
 			var ptmRsP = ptmRsN * ptmRsD / ptmRsW;
 			for (var s = 0; s < subIonsets.length; s++) {
 				// for each ionset we log matches with ms2 fragments
-				subIonsets[s] = this.matchSpectraWithIonSet(
-						this.workUnit.fragments, subIonsets[s],
-						currPeptide.sequence, this.workUnit.z);
+				subIonsets[s] = this.matchSpectraWithIonSets(spectra,
+						subIonsets[s], currPeptide.sequence, this.workUnit.z);
 
 				// score the ionset (matched ions and ion ladders)
 				subIonMatches[s] = this.getMatchCount(subIonsets[s]);
@@ -200,56 +201,47 @@ function MsSearch(data) {
 	};
 
 	// common
-	this.matchSpectraWithIonSet = function(spectra, ionSet, sequence, maxCharge) {
+	this.matchSpectraWithIonSets = function(spectra, ionSet, sequence,
+			maxCharge) {
+		this.matchSpectraWithIonSet(spectra, ionSet.bIons, sequence, maxCharge);
+		this.matchSpectraWithIonSet(spectra, ionSet.yIons, sequence, maxCharge);
+
+		return ionSet;
+	};
+
+	this.matchSpectraWithIonSet = function(spectra, ions, sequence, maxCharge) {
 		var possibleIons;
-		var ionIndex;
 		var losses = [];
 		var neutralIon;
 
-		for (var b = 0; b < ionSet.bIons.length; b++) {
-			neutralIon = ionSet.bIons[b];
+		for (var i = 0; i < ions.length; i++) {
+			neutralIon = ions[i];
 
-			this.updateLosses(losses, neutralIon, sequence.charAt(b));
+			this.updateLosses(losses, neutralIon, sequence.charAt(i));
 			possibleIons = this.getIons(neutralIon, maxCharge, losses);
 
-			for (ionIndex = 0; ionIndex < possibleIons.length; ionIndex++) {
-				if (!this.isMassInSpectra(spectra, possibleIons[ionIndex].mass)) {
-					continue;
-				}
+			this
+					.matchSpectraWithPossibleIons(spectra, possibleIons,
+							neutralIon);
+		}
+	};
 
-				if (possibleIons[ionIndex].baseMatch === 1) {
-					ionSet.bIons[b].baseMatch = 1;
-				}
+	this.matchSpectraWithPossibleIons = function(spectra, possibleIons,
+			neutralIon) {
+		var possibleIon;
+		for (var ionIndex = 0; ionIndex < possibleIons.length; ionIndex++) {
+			possibleIon = possibleIons[ionIndex];
 
-				ionSet.bIons[b].match++;
+			if (!this.isMassInSpectra(spectra, possibleIon.mass)) {
+				continue;
 			}
 
-		}
-
-		losses = [];
-		for (var y = 0; y < ionSet.yIons.length; y++) {
-			neutralIon = ionSet.yIons[y];
-
-			this.updateLosses(losses, neutralIon, sequence.charAt(y));
-			possibleIons = this.getIons(neutralIon, maxCharge, losses);
-
-			for (ionIndex = 0; ionIndex < possibleIons.length; ionIndex++) {
-				if (!this.isMassInSpectra(spectra, possibleIons[ionIndex].mass)) {
-					continue;
-				}
-
-				if (possibleIons[ionIndex].baseMatch === 1) {
-					ionSet.yIons[y].baseMatch = 1;
-				}
-
-				ionSet.yIons[y].match++;
+			if (possibleIon.baseMatch === 1) {
+				neutralIon.baseMatch = 1;
 			}
-		}
 
-		// we've modified it I know don't need to return it as modified by
-		// function
-		// but it makes it explicit.
-		return ionSet;
+			neutralIon.match++;
+		}
 	};
 
 	this.updateLosses = function(losses, neutralIon, residue) {
@@ -274,18 +266,32 @@ function MsSearch(data) {
 	 * precision window we are) common
 	 */
 	this.isMassInSpectra = function(spectra, mass) {
-		var precision = (this.workUnit.fragTolUnit === "ppm") ? mass * 0.000001
-				* this.workUnit.fragTol : g_myWorkUnit.fragTol;
+		var id = Math.floor(mass);
+
+		var precision = this.getTolerance(mass);
 
 		var deltaM = 0;
-		for (var m = 0; m < spectra.length; m++) {
-			deltaM = Math.abs(mass - spectra[m].mz);
-			if (deltaM <= precision) {
-				return true;
+		for (var i = id - 1; i <= id + 1; i++) {
+			if (typeof spectra[i] === 'undefined') {
+				continue;
 			}
+
+			for (var m = 0; m < spectra[i].length; m++) {
+				deltaM = Math.abs(mass - spectra[i][m].mz);
+
+				if (deltaM < precision) {
+					return true;
+				}
+			}
+
 		}
 
 		return false;
+	};
+
+	this.getTolerance = function(mass) {
+		return (this.workUnit.fragTolUnit === "ppm") ? mass * 0.000001
+				* this.workUnit.fragTol : this.workUnit.fragTol;
 	};
 
 	this.checkforFixedPTM = function(res) {
@@ -563,8 +569,8 @@ function MsSearch(data) {
 
 			if (losses.Phos === true) {
 				ionObj = new Ion();
-				ionObj.mass = this.getChargedMass(neutralIon.mass - 97.976896,
-						charge);
+				ionObj.mass = this.getChargedMass(neutralIon.mass
+						- PHOS_LOSS_MASS, charge);
 				ions.push(ionObj);
 			}
 		}
@@ -584,6 +590,16 @@ function MsSearch(data) {
 
 		return ionSet;
 	};
+
+	this.indexSpectra = function(fragments) {
+		var spectra = [];
+
+		for (var i = 0; i < fragments.length; i++) {
+			spectra[Math.floor(fragments[i].mz)] = fragments[i];
+		}
+
+		return spectra;
+	}
 
 	// returns integer array of all possible locations of mod +1
 	// NB position = sequence position + 1 ... 0 = '[' 1 to len = = to len-1 and
