@@ -19,8 +19,15 @@
  */
 this.onmessage = function(event) {
 	var search = new MsSearch(event.data);
-	search.search();
+	var resultObject = search.search();
 
+	if (typeof WorkerGlobalScope !== 'undefined'
+			&& self instanceof WorkerGlobalScope) {
+		postMessage(resultObject);
+		return;
+	}
+
+	sendResult(resultObject);
 };
 
 function MsSearch(data) {
