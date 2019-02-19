@@ -79,105 +79,9 @@ function MsSearch(data) {
 		var spectra = this.indexSpectra(this.workUnit.fragments);
 
 		for (var peptideIndex = 0; peptideIndex < this.workUnit.peptides.length; peptideIndex++) {
-			var currPeptide = this.workUnit.peptides[peptideIndex];
-
-			// holds the best so far score for this peptide modification
-			// positions
-			// held in modpos[{pos,index,mass}]
-			var currScoreObj = {
-				modPos : [],
-				ionsMatched : 0,
-				ionsMatchSum : 0,
-				score : 0
-			};
-
-			var totalModNum = this.getTotalModNum(currPeptide);
-
-			// Array of ModLoc objects
-			// (all possible locations of all modifications reported) ModLoc
-			// objects
-			// are {possLoc,modIndex,vModMass}]
-			var modLocs = this.getAllModLocs(currPeptide);
-
-			// flushes out resObj arrays to correct size
-			var resObj = this.getInitialResObj(currPeptide);
-
-			// just check..
-			if (modLocs.length < totalModNum) {
-				// we are looking for more mods than possible with this residue
-				// because we cheat and place STY when ANDREW's data has full
-				// complement.
-				totalModNum = modLocs.length;
-				// even worse now as we look for 21 twice
-			}
-
-			var subIonsets = this.getSequenceIonSets(currPeptide, modLocs,
-					totalModNum);
-
-			// an array of ionsets to score containing num number of mods
-			// ionsets look good.
-			var subIonMatches = [];
-
-			var ptmRsP = this.getFactorP(this.workUnit.fragments);
-			for (var s = 0; s < subIonsets.length; s++) {
-				// for each ionset we log matches with ms2 fragments
-				subIonsets[s] = this.matchSpectraWithIonSets(spectra,
-						subIonsets[s], currPeptide.sequence, this.workUnit.z);
-
-				// score the ionset (matched ions and ion ladders)
-				subIonMatches[s] = this.getMatchCount(subIonsets[s]);
-			}
-
-			var ionCount = (currPeptide.sequence.length - 1) * 2;
-			for (s = 0; s < subIonsets.length; s++) {
-				var score = 0;
-				if (subIonMatches[s] > 0) {
-					score = this.BinomialP(1 - ptmRsP, ionCount, ionCount
-							- subIonMatches[s] - 1);
-
-					score = score === Infinity ? 0 : -10 * Math.log10(score);
-				}
-
-				// Select best candidate
-				if (score > currScoreObj.score
-						|| (score === currScoreObj.score && this
-								.getMatchSum(subIonsets[s]) >= currScoreObj.ionsMatchSum)) {
-					currScoreObj.score = score;
-					currScoreObj.modPos = subIonsets[s].modPos.slice();
-					// place modPos structure [ModLoc] is kept with score
-					currScoreObj.ionsMatched = subIonMatches[s];
-					currScoreObj.ionsMatchSum = this.getMatchSum(subIonsets[s]);
-				}
-			}
-
-			// currScoreObj = best score, ion-match and modPos of this best
-			// score
-			resObj.S = Math.round(currScoreObj.score * 100000) / 100000;
-			resObj.IM = currScoreObj.ionsMatchSum;
-
-			// sort out resobj mod positions
-			for (var i = 0; i < currScoreObj.modPos.length; i++) {
-				// currScoreObj.modPos is an array of ModLocs
-				var m = currScoreObj.modPos[i].modIndex;
-				var p = currScoreObj.modPos[i].possLoc;
-				resObj.mods[m].P.push(p); // to resObj.mod[].position;
-			}
-
-			// For the moment I have to bulk out the position field to be equal
-			// to
-			// number of mods (if >=200 then I haven't found/cannot confirm a
-			// position)
-			for (var index = 0; index < resObj.mods.length; index++) {
-				if (resObj.mods[index].P.length < currPeptide.mods[index].num) {
-					var n = currPeptide.mods[index].num
-							- resObj.mods[index].P.length;
-					for (var t = 0; t < n; t++) {
-						resObj.mods[index].P.push(200 + t);
-					}
-				}
-			}
-
-			allPeptideScores.push(resObj);
+			var result = this.searchSequence(spectra,
+					this.workUnit.peptides[peptideIndex]);
+			allPeptideScores[peptideIndex] = result;
 		}
 
 		allPeptideScores.sort(function(a, b) {
@@ -195,6 +99,102 @@ function MsSearch(data) {
 		}
 
 		return resultObject;
+	};
+
+	this.searchSequence = function(spectra, currPeptide) {
+		// holds the best so far score for this peptide modification
+		// positions
+		// held in modpos[{pos,index,mass}]
+		var currScoreObj = {
+			modPos : [],
+			ionsMatched : 0,
+			ionsMatchSum : 0,
+			score : 0
+		};
+
+		var totalModNum = this.getTotalModNum(currPeptide);
+
+		// Array of ModLoc objects
+		// (all possible locations of all modifications reported) ModLoc
+		// objects
+		// are {possLoc,modIndex,vModMass}]
+		var modLocs = this.getAllModLocs(currPeptide);
+
+		// flushes out resObj arrays to correct size
+		var resObj = this.getInitialResObj(currPeptide);
+
+		// just check..
+		if (modLocs.length < totalModNum) {
+			totalModNum = modLocs.length;
+		}
+
+		var subIonsets = this.getSequenceIonSets(currPeptide, modLocs,
+				totalModNum);
+
+		// an array of ionsets to score containing num number of mods
+		// ionsets look good.
+		var subIonMatches = [];
+
+		var ptmRsP = this.getFactorP(this.workUnit.fragments);
+		for (var s = 0; s < subIonsets.length; s++) {
+			// for each ionset we log matches with ms2 fragments
+			subIonsets[s] = this.matchSpectraWithIonSets(spectra,
+					subIonsets[s], currPeptide.sequence, this.workUnit.z);
+
+			// score the ionset (matched ions and ion ladders)
+			subIonMatches[s] = this.getMatchCount(subIonsets[s]);
+		}
+
+		var ionCount = (currPeptide.sequence.length - 1) * 2;
+		for (s = 0; s < subIonsets.length; s++) {
+			var score = 0;
+			if (subIonMatches[s] > 0) {
+				score = this.BinomialP(1 - ptmRsP, ionCount, ionCount
+						- subIonMatches[s] - 1);
+
+				score = score === Infinity ? 0 : -10 * Math.log10(score);
+			}
+
+			// Select best candidate
+			if (score > currScoreObj.score
+					|| (score === currScoreObj.score && this
+							.getMatchSum(subIonsets[s]) >= currScoreObj.ionsMatchSum)) {
+				currScoreObj.score = score;
+				currScoreObj.modPos = subIonsets[s].modPos.slice();
+				// place modPos structure [ModLoc] is kept with score
+				currScoreObj.ionsMatched = subIonMatches[s];
+				currScoreObj.ionsMatchSum = this.getMatchSum(subIonsets[s]);
+			}
+		}
+
+		// currScoreObj = best score, ion-match and modPos of this best
+		// score
+		resObj.S = Math.round(currScoreObj.score * 100000) / 100000;
+		resObj.IM = currScoreObj.ionsMatchSum;
+
+		// sort out resobj mod positions
+		for (var i = 0; i < currScoreObj.modPos.length; i++) {
+			// currScoreObj.modPos is an array of ModLocs
+			var m = currScoreObj.modPos[i].modIndex;
+			var p = currScoreObj.modPos[i].possLoc;
+			resObj.mods[m].P.push(p); // to resObj.mod[].position;
+		}
+
+		// For the moment I have to bulk out the position field to be equal
+		// to
+		// number of mods (if >=200 then I haven't found/cannot confirm a
+		// position)
+		for (var index = 0; index < resObj.mods.length; index++) {
+			if (resObj.mods[index].P.length < currPeptide.mods[index].num) {
+				var n = currPeptide.mods[index].num
+						- resObj.mods[index].P.length;
+				for (var t = 0; t < n; t++) {
+					resObj.mods[index].P.push(200 + t);
+				}
+			}
+		}
+
+		return resObj;
 	};
 
 	// common
@@ -263,24 +263,23 @@ function MsSearch(data) {
 	 * precision window we are) common
 	 */
 	this.isMassInSpectra = function(spectra, mass) {
-		var id = Math.floor(mass);
-		var precision = this.getTolerance(mass);
+		var tolerance = this.getTolerance(mass);
 
-		if (typeof spectra[id] !== 'undefined'
-				&& this.isMassInSpectraWindow(spectra[id], mass, precision)) {
-			return true;
-		} else if (typeof spectra[id - 1] !== 'undefined'
-				&& this.isMassInSpectraWindow(spectra[id - 1], mass, precision)) {
-			return true;
-		} else if (typeof spectra[id + 1] !== 'undefined'
-				&& this.isMassInSpectraWindow(spectra[id + 1], mass, precision)) {
+		for (var id = Math.floor(mass - tolerance); id <= Math.floor(mass
+				+ tolerance); id++) {
+
+			if (typeof spectra[id] === 'undefined'
+					|| !this.isInSpectraWindow(spectra[id], mass, tolerance)) {
+				continue;
+			}
+
 			return true;
 		}
 
 		return false;
 	};
 
-	this.isMassInSpectraWindow = function(spectra, mass, precision) {
+	this.isInSpectraWindow = function(spectra, mass, precision) {
 		var deltaM = 0;
 		for (var m = 0; m < spectra.length; m++) {
 			deltaM = Math.abs(mass - spectra[m].mz);
