@@ -18,6 +18,7 @@
  * Web Worker
  */
 this.onmessage = function(event) {
+	"use strict";
 	var search = new MsSearch(event.data);
 	var resultObject = search.search();
 
@@ -36,6 +37,7 @@ function MsSearch(data) {
 	var H2O_MASS = 1.00782503223 + 1.00782503223 + 15.99491461957;
 	var NH3_MASS = 14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223;
 	var PHOS_LOSS_MASS = 97.97689557339;
+	var PROTON_MASS = 1.007276466879;
 	var AA_MASS = {
 		A : 71.0371137852,
 		R : 156.1011110241,
@@ -292,7 +294,7 @@ function MsSearch(data) {
 		return false;
 	};
 
-	this.checkforFixedPTM = function(res) {
+	this.checkforFixedPTM = function(residue) {
 		var massShift = 0;
 		for (var m = 0; m < this.workUnit.fixedMods.length; m++) {
 			if (this.workUnit.fixedMods[m].residues.length > 1) {
@@ -301,7 +303,7 @@ function MsSearch(data) {
 						+ this.workUnit.fixedMods[m].residues);
 			}
 
-			if (this.workUnit.fixedMods[m].residues === res) {
+			if (this.workUnit.fixedMods[m].residues === residue) {
 				massShift += this.workUnit.fixedMods[m].mass;
 			}
 		}
@@ -416,7 +418,7 @@ function MsSearch(data) {
 
 		// Unmodified
 		if (num === 0) {
-			ionSetArray.push(this.getSequenceIons(modifiedSequence, []));
+			ionSetArray[0] = this.getSequenceIons(modifiedSequence, []);
 
 			return ionSetArray;
 		}
@@ -424,8 +426,8 @@ function MsSearch(data) {
 		// Single modification
 		if (num === 1) {
 			for (var ml = 0; ml < modlocs.length; ml++) {
-				ionSetArray.push(this.getSequenceIons(modifiedSequence,
-						[ modlocs[ml] ]));
+				ionSetArray[ml] = this.getSequenceIons(modifiedSequence,
+						[ modlocs[ml] ]);
 			}
 
 			return ionSetArray;
@@ -435,8 +437,7 @@ function MsSearch(data) {
 			return ionSetArray;
 		}
 		// do a calculation first to see if do-able combinations rapidly get out
-		// of
-		// hand.
+		// of hand.
 		// number of combinations = n!/(k!(n-k)!)
 		// if (getCombinations(modlocs.length, num) > MUCH_TOO_MUCH) {
 		// console.log("Bailing: Array too large for me.");
@@ -485,7 +486,7 @@ function MsSearch(data) {
 
 	this.getChargedMass = function(mass, charge) {
 		// Add proton
-		var chargedMass = mass + (1.007276466879 * charge);
+		var chargedMass = mass + (PROTON_MASS * charge);
 
 		return chargedMass / charge;
 	};
@@ -509,7 +510,7 @@ function MsSearch(data) {
 			}
 
 			ionObj.mass = neutralMass;
-			ions.push(ionObj);
+			ions[b] = ionObj;
 		}
 
 		return ions;
