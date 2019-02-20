@@ -64,7 +64,7 @@ function MsSearch(data) {
 
 	this.workUnit = data;
 
-	if (this.workUnit.fragTolUnit === "ppm") {
+	if (this.workUnit.fragTolUnit === 'ppm') {
 		this.getTolerance = function(mass) {
 			return mass * 0.000001 * this.workUnit.fragTol;
 		};
@@ -75,7 +75,6 @@ function MsSearch(data) {
 	}
 
 	this.search = function() {
-		// made up of {peptide id, ionsmatched, score, mods:[{ id,position[] }]}
 		var searchStart = Date.now();
 		var allPeptideScores = [];
 		var spectra = this.indexSpectra(this.workUnit.fragments);
@@ -104,9 +103,6 @@ function MsSearch(data) {
 	};
 
 	this.searchSequence = function(spectra, currPeptide) {
-		// holds the best so far score for this peptide modification
-		// positions
-		// held in modpos[{pos,index,mass}]
 		var currScoreObj = {
 			modPos : [],
 			ionsMatched : 0,
@@ -116,10 +112,8 @@ function MsSearch(data) {
 
 		var totalModNum = this.getTotalModNum(currPeptide);
 
-		// Array of ModLoc objects
-		// (all possible locations of all modifications reported) ModLoc
-		// objects
-		// are {possLoc,modIndex,vModMass}]
+		// Array of ModLoc objects (all possible locations of all modifications
+		// reported) ModLoc objects are {possLoc,modIndex,vModMass}]
 		var modLocs = this.getAllModLocs(currPeptide);
 
 		// flushes out resObj arrays to correct size
@@ -134,7 +128,6 @@ function MsSearch(data) {
 				totalModNum);
 
 		// an array of ionsets to score containing num number of mods
-		// ionsets look good.
 		var subIonMatches = [];
 
 		var ptmRsP = this.getFactorP(this.workUnit.fragments);
@@ -183,8 +176,7 @@ function MsSearch(data) {
 		}
 
 		// For the moment I have to bulk out the position field to be equal
-		// to
-		// number of mods (if >=200 then I haven't found/cannot confirm a
+		// to number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
 		for (var index = 0; index < resObj.mods.length; index++) {
 			if (resObj.mods[index].P.length < currPeptide.mods[index].num) {
@@ -267,8 +259,8 @@ function MsSearch(data) {
 	this.isMassInSpectra = function(spectra, mass) {
 		var tolerance = this.getTolerance(mass);
 
-		for (var id = Math.floor(mass - tolerance); id <= Math.floor(mass
-				+ tolerance); id++) {
+		var idMax = Math.floor(mass + tolerance);
+		for (var id = Math.floor(mass - tolerance); id <= idMax; id++) {
 
 			if (typeof spectra[id] === 'undefined'
 					|| !this.isInSpectraWindow(spectra[id], mass, tolerance)) {
@@ -299,7 +291,7 @@ function MsSearch(data) {
 		for (var m = 0; m < this.workUnit.fixedMods.length; m++) {
 			if (this.workUnit.fixedMods[m].residues.length > 1) {
 				// just to check...
-				console.log("Fixed Mod needs looking at "
+				console.log('Fixed Mod needs looking at '
 						+ this.workUnit.fixedMods[m].residues);
 			}
 
@@ -363,44 +355,43 @@ function MsSearch(data) {
 		return mnum;
 	};
 
-	this.getInitialResObj = function(myPeptide) {
+	this.getInitialResObj = function(peptide) {
 		var resObj = {
-			id : myPeptide.id,
+			id : peptide.id,
 			IM : 0,
 			S : 0,
 			mods : []
 		};
 
-		if (myPeptide.mods === undefined) {
+		if (typeof peptide.mods === 'undefined') {
 			return resObj;
 		}
 
-		for (var mod = 0; mod < myPeptide.mods.length; mod++) {
+		for (var mod = 0; mod < peptide.mods.length; mod++) {
 			var modp = {
-				id : myPeptide.mods[mod].id,
+				id : peptide.mods[mod].id,
 				P : []
 			};
 
 			resObj.mods[mod] = modp;
-			// flush out resObj.mods[]
 		}
 
 		return resObj;
 	};
 
-	this.getAllModLocs = function(myPeptide) {
+	this.getAllModLocs = function(peptide) {
 		var mlocs = [];
-		if (myPeptide.mods === undefined) {
+		if (typeof peptide.mods === 'undefined') {
 			return mlocs;
 		}
 
-		for (var mod = 0; mod < myPeptide.mods.length; mod++) {
+		for (var mod = 0; mod < peptide.mods.length; mod++) {
 			var possLocs = this.createIndexofPossibleLocations3(
-					myPeptide.sequence, myPeptide.mods[mod].residues);
+					peptide.sequence, peptide.mods[mod].residues);
 
 			for (var i = 0; i < possLocs.length; i++) {
 				var modObj = new ModLoc(possLocs[i], mod,
-						myPeptide.mods[mod].mass, myPeptide.mods[mod].id);
+						peptide.mods[mod].mass, peptide.mods[mod].id);
 				mlocs.push(modObj);
 			}
 		}
@@ -440,7 +431,7 @@ function MsSearch(data) {
 		// of hand.
 		// number of combinations = n!/(k!(n-k)!)
 		// if (getCombinations(modlocs.length, num) > MUCH_TOO_MUCH) {
-		// console.log("Bailing: Array too large for me.");
+		// console.log('Bailing: Array too large for me.');
 		// return ionSetArray;
 		// }
 
@@ -473,9 +464,9 @@ function MsSearch(data) {
 			}
 
 			// try
-			// console.log("mlocs:"+JSON.stringify(mlocs)+"
-			// len:"+modlocs.length+"
-			// num:"+num+"conpos:"+conpos.length);
+			// console.log('mlocs:'+JSON.stringify(mlocs)+'
+			// len:'+modlocs.length+'
+			// num:'+num+'conpos:'+conpos.length);
 			var ions = this.getSequenceIons(modifiedSequence, mlocs);
 
 			ionSetArray.push(ions);
@@ -494,13 +485,13 @@ function MsSearch(data) {
 	this.getIonsB = function(sequence, modificationLocations) {
 		var neutralMass = this.checkforFixedPTM('[');
 
-		var acid;
+		var residue;
 		var ions = [];
 		var ionObj;
 		for (var b = 0; b < sequence.length - 1; b++) {
 			ionObj = new Ion();
-			acid = sequence.charAt(b);
-			neutralMass += AA_MASS[acid] + this.checkforFixedPTM(acid);
+			residue = sequence.charAt(b);
+			neutralMass += AA_MASS[residue] + this.checkforFixedPTM(residue);
 
 			for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
 				if (b === (modificationLocations[loopIndex].possLoc - 1)) {
@@ -519,13 +510,13 @@ function MsSearch(data) {
 	this.getIonsY = function(sequence, modificationLocations) {
 		var neutralMass = H2O_MASS + this.checkforFixedPTM(']');
 
-		var acid;
+		var residue;
 		var ions = [];
 		var ionObj;
 		for (var y = sequence.length - 1; y > 0; y--) {
 			ionObj = new Ion();
-			acid = sequence.charAt(y);
-			neutralMass += AA_MASS[acid] + this.checkforFixedPTM(acid);
+			residue = sequence.charAt(y);
+			neutralMass += AA_MASS[residue] + this.checkforFixedPTM(residue);
 
 			for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
 				if (y === (modificationLocations[loopIndex].possLoc - 1)) {
@@ -605,7 +596,7 @@ function MsSearch(data) {
 	// returns integer array of all possible locations of mod +1
 	// NB position = sequence position + 1 ... 0 = '[' 1 to len = = to len-1 and
 	// length+1 = ] ]
-	// input sequence (eg "PEPTIDE") and residues (eg "CKV");
+	// input sequence (eg 'PEPTIDE') and residues (eg 'CKV');
 	this.createIndexofPossibleLocations3 = function(sequence, residues) {
 		var posloc = []; // array of possible locations for this mod
 		var pos = 0;
@@ -799,7 +790,7 @@ function ModLoc(ploc, modindex, modmass, id) {
 	this.id = id;
 }
 
-if (typeof Math.log10 === "undefined") {
+if (typeof Math.log10 === 'undefined') {
 	Object.prototype.log10 = function(n) {
 		return Math.log(n) / Math.log(10);
 	};
