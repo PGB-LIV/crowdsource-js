@@ -17,18 +17,18 @@
 /**
  * Web Worker
  */
+this.search = new MsSearch();
 this.onmessage = function(event) {
 	"use strict";
-	var search = new MsSearch(event.data);
-	var resultObject = search.search();
+	var result = this.search.search(event.data);
 
 	if (typeof WorkerGlobalScope !== 'undefined'
 			&& self instanceof WorkerGlobalScope) {
-		postMessage(resultObject);
+		postMessage(result);
 		return;
 	}
 
-	sendResult(resultObject);
+	sendResult(result);
 };
 
 function MsSearch(data) {
@@ -62,30 +62,41 @@ function MsSearch(data) {
 		U : 150.9536355852
 	};
 
-	this.workUnit = data;
+	this.workUnit;
+	this.spectra;
+	this.ptmRsP;
+	this.getTolerance;
 
-	if (this.workUnit.fragTolUnit === 'ppm') {
-		this.getTolerance = function(mass) {
-			return mass * 0.000001 * this.workUnit.fragTol;
-		};
-	} else {
-		this.getTolerance = function(mass) {
-			return this.workUnit.fragTol;
-		};
+	this.initialise = function(data) {
+		this.workUnit = data;
+		this.spectra = this.indexSpectra(this.workUnit.fragments);
+		this.ptmRsP = this.getFactorP(this.workUnit.fragments);
+
+		if (this.workUnit.fragTolUnit === 'ppm') {
+			this.getTolerance = function(mass) {
+				return mass * 0.000001 * this.workUnit.fragTol;
+			};
+		} else {
+			this.getTolerance = function(mass) {
+				return this.workUnit.fragTol;
+			};
+		}
 	}
 
-	this.search = function() {
-		var searchStart = Date.now();
-		var allPeptideScores = [];
-		var spectra = this.indexSpectra(this.workUnit.fragments);
+	this.search = function(data) {
+		this.initialise(data);
 
+		var searchStart = Date.now();
+		var peptideScore = [];
+
+		var searchResult;
 		for (var peptideIndex = 0; peptideIndex < this.workUnit.peptides.length; peptideIndex++) {
-			var result = this.searchSequence(spectra,
-					this.workUnit.peptides[peptideIndex]);
-			allPeptideScores[peptideIndex] = result;
+			searchResult = this
+					.searchSequence(this.workUnit.peptides[peptideIndex]);
+			peptideScore[peptideIndex] = searchResult;
 		}
 
-		allPeptideScores.sort(function(a, b) {
+		peptideScore.sort(function(a, b) {
 			return b.score - a.score;
 		});
 
@@ -96,82 +107,52 @@ function MsSearch(data) {
 		};
 
 		for (var r = 0; r < this.workUnit.peptides.length; r++) {
-			resultObject.peptides[r] = allPeptideScores[r];
+			resultObject.peptides[r] = peptideScore[r];
 		}
 
 		return resultObject;
 	};
 
-	this.searchSequence = function(spectra, currPeptide) {
-		var currScoreObj = {
-			modPos : [],
-			ionsMatched : 0,
-			ionsMatchSum : 0,
-			score : 0
-		};
-
-		var totalModNum = this.getTotalModNum(currPeptide);
+	this.searchSequence = function(peptide) {
+		var totalModNum = this.getTotalModNum(peptide);
 
 		// Array of ModLoc objects (all possible locations of all modifications
 		// reported) ModLoc objects are {possLoc,modIndex,vModMass}]
-		var modLocs = this.getAllModLocs(currPeptide);
+		var modLocs = this.getAllModLocs(peptide);
 
 		// flushes out resObj arrays to correct size
-		var resObj = this.getInitialResObj(currPeptide);
+		var resObj = this.getInitialResObj(peptide);
 
 		// just check..
 		if (modLocs.length < totalModNum) {
 			totalModNum = modLocs.length;
 		}
 
-		var subIonsets = this.getSequenceIonSets(currPeptide, modLocs,
-				totalModNum);
-
-		// an array of ionsets to score containing num number of mods
+		var subIonsets = this.getSequenceIonSets(peptide, modLocs, totalModNum);
 		var subIonMatches = [];
 
-		var ptmRsP = this.getFactorP(this.workUnit.fragments);
 		for (var s = 0; s < subIonsets.length; s++) {
 			// for each ionset we log matches with ms2 fragments
-			subIonsets[s] = this.matchSpectraWithIonSets(spectra,
-					subIonsets[s], currPeptide.sequence, this.workUnit.z);
+			subIonsets[s] = this.matchSpectraWithIonSets(subIonsets[s],
+					peptide.sequence, this.workUnit.z);
 
 			// score the ionset (matched ions and ion ladders)
 			subIonMatches[s] = this.getMatchCount(subIonsets[s]);
 		}
 
-		var ionCount = (currPeptide.sequence.length - 1) * 2;
-		for (s = 0; s < subIonsets.length; s++) {
-			var score = 0;
-			if (subIonMatches[s] > 0) {
-				score = this.BinomialP(1 - ptmRsP, ionCount, ionCount
-						- subIonMatches[s] - 1);
-
-				score = score === Infinity ? 0 : -10 * Math.log10(score);
-			}
-
-			// Select best candidate
-			if (score > currScoreObj.score
-					|| (score === currScoreObj.score && this
-							.getMatchSum(subIonsets[s]) >= currScoreObj.ionsMatchSum)) {
-				currScoreObj.score = score;
-				currScoreObj.modPos = subIonsets[s].modPos.slice();
-				// place modPos structure [ModLoc] is kept with score
-				currScoreObj.ionsMatched = subIonMatches[s];
-				currScoreObj.ionsMatchSum = this.getMatchSum(subIonsets[s]);
-			}
-		}
+		var bestScore = this.getBestScore(peptide.sequence, subIonsets,
+				subIonMatches);
 
 		// currScoreObj = best score, ion-match and modPos of this best
 		// score
-		resObj.S = Math.round(currScoreObj.score * 100000) / 100000;
-		resObj.IM = currScoreObj.ionsMatchSum;
+		resObj.S = Math.round(bestScore.score * 100000) / 100000;
+		resObj.IM = bestScore.ionsMatchSum;
 
 		// sort out resobj mod positions
-		for (var i = 0; i < currScoreObj.modPos.length; i++) {
+		for (var i = 0; i < bestScore.modPos.length; i++) {
 			// currScoreObj.modPos is an array of ModLocs
-			var m = currScoreObj.modPos[i].modIndex;
-			var p = currScoreObj.modPos[i].possLoc;
+			var m = bestScore.modPos[i].modIndex;
+			var p = bestScore.modPos[i].possLoc;
 			resObj.mods[m].P.push(p); // to resObj.mod[].position;
 		}
 
@@ -179,9 +160,8 @@ function MsSearch(data) {
 		// to number of mods (if >=200 then I haven't found/cannot confirm a
 		// position)
 		for (var index = 0; index < resObj.mods.length; index++) {
-			if (resObj.mods[index].P.length < currPeptide.mods[index].num) {
-				var n = currPeptide.mods[index].num
-						- resObj.mods[index].P.length;
+			if (resObj.mods[index].P.length < peptide.mods[index].num) {
+				var n = peptide.mods[index].num - resObj.mods[index].P.length;
 				for (var t = 0; t < n; t++) {
 					resObj.mods[index].P.push(200 + t);
 				}
@@ -191,16 +171,52 @@ function MsSearch(data) {
 		return resObj;
 	};
 
+	this.getBestScore = function(sequence, subIonsets, subIonMatches) {
+		var bestScore = {
+			modPos : [],
+			ionsMatched : 0,
+			ionsMatchSum : 0,
+			score : 0
+		};
+
+		var ionCount = (sequence.length - 1) * 2;
+		var currScore;
+		for (var setIndex = 0; setIndex < subIonsets.length; setIndex++) {
+			currScore = 0;
+			if (subIonMatches[setIndex] > 0) {
+				currScore = this.BinomialP(1 - this.ptmRsP, ionCount, ionCount
+						- subIonMatches[setIndex] - 1);
+
+				currScore = currScore === Infinity ? 0 : -10
+						* Math.log10(currScore);
+			}
+
+			// Select best candidate
+			if (currScore < bestScore.score
+					|| (currScore === bestScore.score && this
+							.getMatchSum(subIonsets[setIndex]) < bestScore.ionsMatchSum)) {
+				continue;
+			}
+
+			bestScore.score = currScore;
+			bestScore.modPos = subIonsets[setIndex].modPos.slice();
+			// place modPos structure [ModLoc] is kept with score
+			bestScore.ionsMatched = subIonMatches[setIndex];
+			bestScore.ionsMatchSum = this.getMatchSum(subIonsets[setIndex]);
+		}
+
+		return bestScore;
+	};
+
 	// common
-	this.matchSpectraWithIonSets = function(spectra, ionSet, sequence,
-			maxCharge) {
-		this.matchSpectraWithIonSet(spectra, ionSet.bIons, sequence, maxCharge);
-		this.matchSpectraWithIonSet(spectra, ionSet.yIons, sequence, maxCharge);
+	this.matchSpectraWithIonSets = function(ionSet, sequence, maxCharge) {
+		this.matchSpectraWithIonSet(ionSet.bIons, sequence, maxCharge);
+		this.matchSpectraWithIonSet(ionSet.yIons, sequence, maxCharge);
 
 		return ionSet;
 	};
 
-	this.matchSpectraWithIonSet = function(spectra, ions, sequence, maxCharge) {
+	this.matchSpectraWithIonSet = function(ions, sequence, maxCharge) {
 		var possibleIons;
 		var losses = [];
 		var neutralIon;
@@ -211,19 +227,16 @@ function MsSearch(data) {
 			this.updateLosses(losses, neutralIon, sequence.charAt(i));
 			possibleIons = this.getIons(neutralIon, maxCharge, losses);
 
-			this
-					.matchSpectraWithPossibleIons(spectra, possibleIons,
-							neutralIon);
+			this.matchSpectraWithPossibleIons(possibleIons, neutralIon);
 		}
 	};
 
-	this.matchSpectraWithPossibleIons = function(spectra, possibleIons,
-			neutralIon) {
+	this.matchSpectraWithPossibleIons = function(possibleIons, neutralIon) {
 		var possibleIon;
 		for (var ionIndex = 0; ionIndex < possibleIons.length; ionIndex++) {
 			possibleIon = possibleIons[ionIndex];
 
-			if (!this.isMassInSpectra(spectra, possibleIon.mass)) {
+			if (!this.isMassInSpectra(possibleIon.mass)) {
 				continue;
 			}
 
@@ -256,14 +269,14 @@ function MsSearch(data) {
 	 * match else first match intensity. also store deltaM (how close to
 	 * precision window we are) common
 	 */
-	this.isMassInSpectra = function(spectra, mass) {
+	this.isMassInSpectra = function(mass) {
 		var tolerance = this.getTolerance(mass);
 
 		var idMax = Math.floor(mass + tolerance);
 		for (var id = Math.floor(mass - tolerance); id <= idMax; id++) {
-
-			if (typeof spectra[id] === 'undefined'
-					|| !this.isInSpectraWindow(spectra[id], mass, tolerance)) {
+			if (typeof this.spectra[id] === 'undefined'
+					|| !this.isInSpectraWindow(this.spectra[id], mass,
+							tolerance)) {
 				continue;
 			}
 
