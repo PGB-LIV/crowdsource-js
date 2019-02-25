@@ -70,7 +70,8 @@ function DraculaClient(callBackInstance) {
 	 * Server Communication
 	 */
 	this.requestWorkUnit = function() {
-		$.getScript(REQUEST_URI + '?r=workunit&callback=' + draculaInstance.callBack);
+		$.getScript(REQUEST_URI + '?r=workunit&callback='
+				+ draculaInstance.callBack);
 	};
 
 	this.receiveWorkUnit = function(json) {
