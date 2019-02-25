@@ -18,8 +18,8 @@ function DraculaClient(callBackInstance) {
 	"use strict";
 
 	this.isNoWorkerAllowed = false;
-	var REQUEST_URI = 'http://138.253.218.170:1260/work';
-	var WORKER_URI = 'http://pgb.liv.ac.uk/~andrew/crowdsource-js/src/MsSearch.js';
+	var REQUEST_URI = 'http://pgb.liv.ac.uk:1260/work';
+	var WORKER_URI = 'http://pgb.liv.ac.uk:1260/script/MsSearch.js';
 
 	var draculaInstance = this;
 
@@ -70,7 +70,7 @@ function DraculaClient(callBackInstance) {
 	 * Server Communication
 	 */
 	this.requestWorkUnit = function() {
-		$.getScript(REQUEST_URI + '?r=workunit&callback=' + this.callBack);
+		$.getScript(REQUEST_URI + '?r=workunit&callback=' + draculaInstance.callBack);
 	};
 
 	this.receiveWorkUnit = function(json) {
