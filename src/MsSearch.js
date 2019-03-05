@@ -114,7 +114,7 @@ function MsSearch(data) {
 	};
 
 	this.searchSequence = function(peptide) {
-		var totalModNum = this.getTotalModNum(peptide);
+		var totalModNum = this.getTotalModNum(peptide.mods);
 
 		// Array of ModLoc objects (all possible locations of all modifications
 		// reported) ModLoc objects are {possLoc,modIndex,vModMass}]
@@ -353,16 +353,13 @@ function MsSearch(data) {
 	};
 
 	/**
-	 * Gets the total modifiable sites from the modification list
-	 * 
-	 * @param peptide
-	 *            Object to read mods from
-	 * @returns int
+	 * Gets the total modifiable sites from the peptide mod list
 	 */
-	this.getTotalModNum = function(peptide) {
+
+	this.getTotalModNum = function(mods) {
 		var mnum = 0;
-		for (var mod = 0; mod < peptide.mods.length; mod++) {
-			mnum += peptide.mods[mod].num;
+		for (var mod = 0; mod < mods.length; mod++) {
+			mnum += mods[mod].num;
 		}
 
 		return mnum;

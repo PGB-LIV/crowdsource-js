@@ -139,7 +139,7 @@ function DraculaClient(callBackInstance) {
 			if (isAbort || !script.readyState
 					|| /loaded|complete/.test(script.readyState)) {
 				script.onload = script.onreadystatechange = null;
-				script = undefined;
+				script = null;
 
 				if (!isAbort) {
 					if (callback)
