@@ -70,7 +70,7 @@ function DraculaClient(callBackInstance) {
 	 * Server Communication
 	 */
 	this.requestWorkUnit = function() {
-		$.getScript(REQUEST_URI + '?r=workunit&callback='
+		draculaInstance.getScript(REQUEST_URI + '?r=workunit&callback='
 				+ draculaInstance.callBack);
 	};
 
@@ -88,22 +88,18 @@ function DraculaClient(callBackInstance) {
 		console.log('Processed in: ' + resultObject.processTime);
 		var resultString = JSON.stringify(resultObject);
 
-		$.getScript(REQUEST_URI + '?r=result&result=' + resultString
+		this.getScript(REQUEST_URI + '?r=result&result=' + resultString
 				+ '&callback=' + this.callBack);
 	};
 
 	this.sendTerminating = function() {
 		this.renfield.terminate(); // terminate the worker...
-		$.getScript(REQUEST_URI + '?r=terminate&callback=' + this.callBack);
+		this.getScript(REQUEST_URI + '?r=terminate&callback=' + this.callBack);
 	};
 
 	this.initialise = function() {
 		if (!this.isWorkerAvailable()) {
-			$.ajax({
-				url : WORKER_URI,
-				dataType : 'script',
-				async : false
-			});
+			this.getScript(WORKER_URI);
 
 			console.warn('WebWorker not available');
 		} else {
@@ -132,15 +128,32 @@ function DraculaClient(callBackInstance) {
 			draculaInstance.sendResult(e.data);
 		};
 	}
+
+	// https://stackoverflow.com/a/28002292/702192
+	this.getScript = function(source, callback) {
+		var script = document.createElement('script');
+		var prior = document.getElementsByTagName('script')[0];
+		script.async = 1;
+
+		script.onload = script.onreadystatechange = function(_, isAbort) {
+			if (isAbort || !script.readyState
+					|| /loaded|complete/.test(script.readyState)) {
+				script.onload = script.onreadystatechange = null;
+				script = undefined;
+
+				if (!isAbort) {
+					if (callback)
+						callback();
+				}
+			}
+		};
+
+		script.src = source;
+		prior.parentNode.insertBefore(script, prior);
+	}
 }
 
 var draculaClient = new DraculaClient('draculaClient');
-
-$(window).on('beforeunload', function() {
-	if (typeof (w) !== 'undefined') {
-		draculaClient.sendTerminating();
-	}
-});
 
 draculaClient.initialise();
 draculaClient.requestWorkUnit();
