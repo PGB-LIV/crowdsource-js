@@ -25,7 +25,7 @@ function DraculaClient(callBackInstance) {
 
 	this.callBack = callBackInstance + '.parseResult';
 
-	this.renfield;
+	this.renfield = null;
 
 	this.jobCount = 0;
 
@@ -63,7 +63,7 @@ function DraculaClient(callBackInstance) {
 	};
 
 	this.isWorkerAvailable = function() {
-		return typeof (Worker) !== 'undefined'
+		return typeof (Worker) !== 'undefined';
 	};
 
 	/**
@@ -106,7 +106,7 @@ function DraculaClient(callBackInstance) {
 			console.info('WebWorker available');
 			this.initialiseWorker();
 		}
-	}
+	};
 
 	this.initialiseWorker = function() {
 		var BuildWorker = function(importFunc) {
@@ -127,7 +127,7 @@ function DraculaClient(callBackInstance) {
 		this.renfield.onmessage = function(e) {
 			draculaInstance.sendResult(e.data);
 		};
-	}
+	};
 
 	// https://stackoverflow.com/a/28002292/702192
 	this.getScript = function(source, callback) {
@@ -150,7 +150,7 @@ function DraculaClient(callBackInstance) {
 
 		script.src = source;
 		prior.parentNode.insertBefore(script, prior);
-	}
+	};
 }
 
 var draculaClient = new DraculaClient('draculaClient');

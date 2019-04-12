@@ -81,7 +81,7 @@ function MsSearch(data) {
 				return this.workUnit.fragTol;
 			};
 		}
-	}
+	};
 
 	this.search = function(data) {
 		this.initialise(data);
