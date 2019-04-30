@@ -230,7 +230,7 @@ function MsSearch(data) {
 
 			this.updateLosses(losses, neutralIon, sequence.charAt(i));
 
-			if (i == 0) {
+			if (i === 0) {
 				continue;
 			}
 
@@ -331,19 +331,19 @@ function MsSearch(data) {
 			if (ions[i].baseMatch > 0) {
 				count++;
 			} else if (ions[i].match > 0) {
-				count += .45;
+				count += 0.45;
 			}
 		}
 
 		return count;
-	}
+	};
 
 	this.getMatchCount = function(ionSet) {
-		var aCount = this.getMatchCountIons(ionSet.aIons);
+		// A ions not counted
 		var bCount = this.getMatchCountIons(ionSet.bIons);
 		var yCount = this.getMatchCountIons(ionSet.yIons);
 
-		return 0 + bCount + yCount;
+		return bCount + yCount;
 	};
 
 	this.getMatchSumIons = function(ions) {
