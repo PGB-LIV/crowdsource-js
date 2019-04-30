@@ -35,6 +35,7 @@ function MsSearch(data) {
 	"use strict";
 
 	var H2O_MASS = 1.00782503223 + 1.00782503223 + 15.99491461957;
+	var CO_MASS = 12 + 15.99491461957;
 	var NH3_MASS = 14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223;
 	var PHOS_LOSS_MASS = 97.97689557339;
 	var PROTON_MASS = 1.007276466879;
@@ -62,15 +63,15 @@ function MsSearch(data) {
 		U : 150.9536355852
 	};
 
-	this.workUnit;
-	this.spectra;
-	this.ptmRsP;
-	this.getTolerance;
+	this.workUnit = null;
+	this.spectra = null;
+	this.probability = null;
+	this.getTolerance = null;
 
 	this.initialise = function(data) {
 		this.workUnit = data;
 		this.spectra = this.indexSpectra(this.workUnit.fragments);
-		this.ptmRsP = this.getFactorP(this.workUnit.fragments);
+		this.probability = this.getProbability(this.workUnit.fragments);
 
 		if (this.workUnit.fragTolUnit === 'ppm') {
 			this.getTolerance = function(mass) {
@@ -179,13 +180,15 @@ function MsSearch(data) {
 			score : 0
 		};
 
-		var ionCount = (sequence.length - 1) * 2;
 		var currScore;
 		for (var setIndex = 0; setIndex < subIonsets.length; setIndex++) {
+			var aCount = subIonsets[setIndex].aIons.length - 1;
+			var ionCount = ((sequence.length - 2) * 2) + aCount;
+
 			currScore = 0;
 			if (subIonMatches[setIndex] > 0) {
-				currScore = this.BinomialP(1 - this.ptmRsP, ionCount, ionCount
-						- subIonMatches[setIndex] - 1);
+				currScore = this.BinomialP(1 - this.probability, ionCount,
+						ionCount - subIonMatches[setIndex] - 1);
 
 				currScore = currScore === Infinity ? 0 : -10
 						* Math.log10(currScore);
@@ -210,6 +213,7 @@ function MsSearch(data) {
 
 	// common
 	this.matchSpectraWithIonSets = function(ionSet, sequence, maxCharge) {
+		this.matchSpectraWithIonSet(ionSet.aIons, sequence, maxCharge);
 		this.matchSpectraWithIonSet(ionSet.bIons, sequence, maxCharge);
 		this.matchSpectraWithIonSet(ionSet.yIons, sequence, maxCharge);
 
@@ -225,6 +229,11 @@ function MsSearch(data) {
 			neutralIon = ions[i];
 
 			this.updateLosses(losses, neutralIon, sequence.charAt(i));
+
+			if (i == 0) {
+				continue;
+			}
+
 			possibleIons = this.getIons(neutralIon, maxCharge, losses);
 
 			this.matchSpectraWithPossibleIons(possibleIons, neutralIon);
@@ -316,46 +325,47 @@ function MsSearch(data) {
 		return massShift;
 	};
 
+	this.getMatchCountIons = function(ions) {
+		var count = 0;
+		for (var i = 0; i < ions.length; i++) {
+			if (ions[i].baseMatch > 0) {
+				count++;
+			} else if (ions[i].match > 0) {
+				count += .45;
+			}
+		}
+
+		return count;
+	}
+
 	this.getMatchCount = function(ionSet) {
-		var bCount = 0;
-		for (var b = 0; b < ionSet.bIons.length; b++) {
-			if (ionSet.bIons[b].baseMatch > 0) {
-				bCount++;
-			} else if (ionSet.bIons[b].match > 0) {
-				bCount += 0.75;
-			}
+		var aCount = this.getMatchCountIons(ionSet.aIons);
+		var bCount = this.getMatchCountIons(ionSet.bIons);
+		var yCount = this.getMatchCountIons(ionSet.yIons);
+
+		return 0 + bCount + yCount;
+	};
+
+	this.getMatchSumIons = function(ions) {
+		var count = 0;
+		for (var i = 0; i < ions.length; i++) {
+			count += ions[i].match;
 		}
 
-		var yCount = 0;
-		for (var y = 0; y < ionSet.yIons.length; y++) {
-			if (ionSet.yIons[y].baseMatch > 0) {
-				yCount++;
-			} else if (ionSet.yIons[y].match > 0) {
-				yCount += 0.75;
-			}
-		}
-
-		return bCount + yCount;
+		return count;
 	};
 
 	this.getMatchSum = function(ionSet) {
-		var bCount = 0;
-		for (var b = 0; b < ionSet.bIons.length; b++) {
-			bCount += ionSet.bIons[b].match;
-		}
+		var aCount = this.getMatchSumIons(ionSet.aIons);
+		var bCount = this.getMatchSumIons(ionSet.bIons);
+		var yCount = this.getMatchSumIons(ionSet.yIons);
 
-		var yCount = 0;
-		for (var y = 0; y < ionSet.yIons.length; y++) {
-			yCount += ionSet.yIons[y].match;
-		}
-
-		return bCount + yCount;
+		return aCount + bCount + yCount;
 	};
 
 	/**
 	 * Gets the total modifiable sites from the peptide mod list
 	 */
-
 	this.getTotalModNum = function(mods) {
 		var mnum = 0;
 		for (var mod = 0; mod < mods.length; mod++) {
@@ -492,6 +502,36 @@ function MsSearch(data) {
 		return chargedMass / charge;
 	};
 
+	this.getIonsA = function(sequence, modificationLocations) {
+		var neutralMass = this.checkforFixedPTM('[');
+		neutralMass += CO_MASS;
+
+		var residue;
+		var ions = [];
+		var ionObj;
+		for (var a = 0; a < sequence.length; a++) {
+			ionObj = new Ion();
+			residue = sequence.charAt(a);
+			neutralMass += AA_MASS[residue] + this.checkforFixedPTM(residue);
+
+			if (neutralMass > 800) {
+				break;
+			}
+
+			for (var loopIndex = 0; loopIndex < modificationLocations.length; loopIndex++) {
+				if (a === (modificationLocations[loopIndex].possLoc - 1)) {
+					neutralMass += modificationLocations[loopIndex].vModMass;
+					ionObj.modification = modificationLocations[loopIndex].id;
+				}
+			}
+
+			ionObj.mass = neutralMass;
+			ions[a] = ionObj;
+		}
+
+		return ions;
+	};
+
 	this.getIonsB = function(sequence, modificationLocations) {
 		var neutralMass = this.checkforFixedPTM('[');
 
@@ -567,6 +607,14 @@ function MsSearch(data) {
 				ions.push(ionObj);
 			}
 
+			// Water + Amonia
+			if (losses.H2O === true && losses.NH3 === true) {
+				ionObj = new Ion();
+				ionObj.mass = this.getChargedMass(neutralIon.mass
+						- (H2O_MASS + NH3_MASS), charge);
+				ions.push(ionObj);
+			}
+
 			if (losses.Phos === true) {
 				ionObj = new Ion();
 				ionObj.mass = this.getChargedMass(neutralIon.mass
@@ -582,6 +630,7 @@ function MsSearch(data) {
 		var ionSet = new Ionset();
 
 		ionSet.modPos = mlocs.slice();
+		ionSet.aIons = this.getIonsA(modifiedSequence.sequence, mlocs);
 		ionSet.bIons = this.getIonsB(modifiedSequence.sequence, mlocs);
 		ionSet.yIons = this.getIonsY(modifiedSequence.sequence, mlocs);
 
@@ -734,18 +783,25 @@ function MsSearch(data) {
 		return r;
 	};
 
-	this.getFactorP = function(fragments) {
-		var ptmRsN = fragments.length;
-		var ptmRsD = 0.5;
-		var ptmRsW = 0;
-		for (var fragId = 0; fragId < ptmRsN; fragId++) {
-			ptmRsW = Math.max(ptmRsW, fragments[fragId].mz);
+	this.getProbability = function(fragments) {
+		var N = fragments.length;
+
+		var D;
+
+		if (this.workUnit.fragTolUnit === 'ppm') {
+			D = 0.000001 * this.workUnit.fragTol;
+		} else {
+			D = this.workUnit.fragTol;
 		}
 
-		// TODO: Remove hard coded window size
-		ptmRsW = Math.ceil(ptmRsW / 100) * 100;
+		var W = 0;
+		for (var fragId = 0; fragId < N; fragId++) {
+			W = Math.max(W, fragments[fragId].mz);
+		}
 
-		return ptmRsN * ptmRsD / ptmRsW;
+		W = Math.ceil(W / 100) * 100;
+
+		return N * D / W;
 	};
 }
 
@@ -754,6 +810,11 @@ function Ionset() {
 	 * an array of ModLocs
 	 */
 	this.modPos = [];
+
+	/**
+	 * an array of Ion
+	 */
+	this.aIons = [];
 
 	/**
 	 * an array of Ion
