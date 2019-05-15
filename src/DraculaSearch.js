@@ -141,11 +141,15 @@ function DraculaClient(callBackInstance) {
 				script.onload = script.onreadystatechange = null;
 				script = null;
 
-				if (!isAbort) {
-					if (callback)
-						callback();
+				if (!isAbort && callback) {
+					setTimeout(callback, 0);
 				}
 			}
+		};
+		script.onerror = function() {
+			console.warn("Connection failed. Retrying.");
+			setTimeout(draculaInstance.requestWorkUnit, Math.floor((Math
+					.random() * 10000) + 1000));
 		};
 
 		script.src = source;
