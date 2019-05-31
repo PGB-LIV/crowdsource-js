@@ -34,6 +34,7 @@ this.onmessage = function(event) {
 function MsSearch(data) {
 	"use strict";
 
+	var VERSION = 'INSERT_BUILD_VERSION';
 	var H2O_MASS = 1.00782503223 + 1.00782503223 + 15.99491461957;
 	var CO_MASS = 12 + 15.99491461957;
 	var NH3_MASS = 14.00307400443 + 1.00782503223 + 1.00782503223 + 1.00782503223;
@@ -416,7 +417,6 @@ function MsSearch(data) {
 			}
 		}
 
-		// why do we sort it? to shuffle the mods?
 		mlocs.sort(function(a, b) {
 			return a.possLoc - b.possLoc;
 		});
@@ -447,13 +447,6 @@ function MsSearch(data) {
 		if (modlocs.length < num) {
 			return ionSetArray;
 		}
-		// do a calculation first to see if do-able combinations rapidly get out
-		// of hand.
-		// number of combinations = n!/(k!(n-k)!)
-		// if (getCombinations(modlocs.length, num) > MUCH_TOO_MUCH) {
-		// console.log('Bailing: Array too large for me.');
-		// return ionSetArray;
-		// }
 
 		var combArray = this.createArrayPossibleCombinations3(modlocs,
 				modlocs.length, num); // combarray
@@ -483,10 +476,6 @@ function MsSearch(data) {
 				continue;
 			}
 
-			// try
-			// console.log('mlocs:'+JSON.stringify(mlocs)+'
-			// len:'+modlocs.length+'
-			// num:'+num+'conpos:'+conpos.length);
 			var ions = this.getSequenceIons(modifiedSequence, mlocs);
 
 			ionSetArray.push(ions);

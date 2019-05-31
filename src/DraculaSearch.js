@@ -20,7 +20,7 @@ function DraculaClient(callBackInstance) {
 	this.isNoWorkerAllowed = false;
 	var REQUEST_URI = 'http://pgb.liv.ac.uk:1260/work';
 	var WORKER_URI = 'http://pgb.liv.ac.uk:1260/script/MsSearch.js';
-
+	var VERSION = 'INSERT_BUILD_VERSION';
 	var draculaInstance = this;
 
 	this.callBack = callBackInstance + '.parseResult';
@@ -30,8 +30,7 @@ function DraculaClient(callBackInstance) {
 	this.jobCount = 0;
 
 	/**
-	 * this function is the P of the JSONP response from server eg
-	 * 'parseResult(Object)' P the response server
+	 * JSONP method
 	 */
 	this.parseResult = function(json) {
 		if (typeof (json.uid) !== 'undefined') {
@@ -53,11 +52,14 @@ function DraculaClient(callBackInstance) {
 					.random() * 10000) + 1000));
 
 			break;
-		default:
 		case 'nomore':
 			console.log('No work');
 			setTimeout(draculaInstance.requestWorkUnit, Math.floor((Math
 					.random() * 60000) + 30000));
+			break;
+		case 'BadVersion':
+		default:
+			throw 'Client outdated.';
 			break;
 		}
 	};
@@ -70,8 +72,8 @@ function DraculaClient(callBackInstance) {
 	 * Server Communication
 	 */
 	this.requestWorkUnit = function() {
-		draculaInstance.getScript(REQUEST_URI + '?r=workunit&callback='
-				+ draculaInstance.callBack);
+		draculaInstance.getScript(REQUEST_URI + '?v=' + VERSION
+				+ '&r=workunit&callback=' + draculaInstance.callBack);
 	};
 
 	this.receiveWorkUnit = function(json) {
@@ -88,8 +90,8 @@ function DraculaClient(callBackInstance) {
 		console.log('Processed in: ' + resultObject.processTime);
 		var resultString = JSON.stringify(resultObject);
 
-		this.getScript(REQUEST_URI + '?r=result&result=' + resultString
-				+ '&callback=' + this.callBack);
+		this.getScript(REQUEST_URI + '?v=' + VERSION + '&r=result&result='
+				+ resultString + '&callback=' + this.callBack);
 	};
 
 	this.sendTerminating = function() {
